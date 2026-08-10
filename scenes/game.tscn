@@ -1,0 +1,213 @@
+[gd_scene format=3 uid="uid://c8gameproto01"]
+
+[ext_resource type="Script" uid="uid://dhpu6rdvejsyc" path="res://scripts/game.gd" id="1_game"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_left"]
+size = Vector2(20, 800)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_right"]
+size = Vector2(20, 800)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_bottom"]
+size = Vector2(420, 20)
+
+[node name="Game" type="Node2D" unique_id=1400804153]
+script = ExtResource("1_game")
+
+[node name="BackgroundLayer" type="CanvasLayer" parent="." unique_id=639345781]
+layer = -1
+
+[node name="Background" type="ColorRect" parent="BackgroundLayer" unique_id=780127215]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.12, 0.14, 0.2, 1)
+
+[node name="LeftWallVisual" type="ColorRect" parent="BackgroundLayer" unique_id=1258018312]
+offset_left = 50.0
+offset_top = 100.0
+offset_right = 70.0
+offset_bottom = 920.0
+mouse_filter = 2
+color = Color(0.35, 0.38, 0.45, 1)
+
+[node name="RightWallVisual" type="ColorRect" parent="BackgroundLayer" unique_id=129669629]
+offset_left = 470.0
+offset_top = 100.0
+offset_right = 490.0
+offset_bottom = 920.0
+mouse_filter = 2
+color = Color(0.35, 0.38, 0.45, 1)
+
+[node name="BottomWallVisual" type="ColorRect" parent="BackgroundLayer" unique_id=1049186757]
+offset_left = 50.0
+offset_top = 900.0
+offset_right = 490.0
+offset_bottom = 920.0
+mouse_filter = 2
+color = Color(0.35, 0.38, 0.45, 1)
+
+[node name="Walls" type="Node2D" parent="." unique_id=1554919850]
+
+[node name="LeftWall" type="StaticBody2D" parent="Walls" unique_id=1398148153]
+position = Vector2(60, 500)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/LeftWall" unique_id=286889964]
+shape = SubResource("RectangleShape2D_left")
+
+[node name="RightWall" type="StaticBody2D" parent="Walls" unique_id=377000665]
+position = Vector2(480, 500)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/RightWall" unique_id=1413752252]
+shape = SubResource("RectangleShape2D_right")
+
+[node name="BottomWall" type="StaticBody2D" parent="Walls" unique_id=1735524529]
+position = Vector2(270, 910)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Walls/BottomWall" unique_id=1906051521]
+shape = SubResource("RectangleShape2D_bottom")
+
+[node name="DropLine" type="Line2D" parent="." unique_id=1815935238]
+width = 2.0
+default_color = Color(1, 1, 1, 0.35)
+
+[node name="DangerLine" type="Line2D" parent="." unique_id=-1479032057]
+width = 2.0
+default_color = Color(1, 0.3, 0.3, 0.6)
+
+[node name="PreviewCurrent" type="Sprite2D" parent="." unique_id=1479341231]
+modulate = Color(1, 1, 1, 0.55)
+
+[node name="PreviewNext" type="Sprite2D" parent="." unique_id=1479341232]
+position = Vector2(420, 60)
+scale = Vector2(0.65, 0.65)
+
+[node name="Monsters" type="Node2D" parent="." unique_id=1423001087]
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=1814744038]
+
+[node name="ScoreLabel" type="Label" parent="UI" unique_id=602374890]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 260.0
+offset_bottom = 48.0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 22
+text = "Score: 0"
+
+[node name="BestLabel" type="Label" parent="UI" unique_id=602374891]
+offset_left = 16.0
+offset_top = 48.0
+offset_right = 260.0
+offset_bottom = 72.0
+theme_override_colors/font_color = Color(1, 1, 1, 0.7)
+theme_override_font_sizes/font_size = 16
+text = "Best: 0"
+
+[node name="LevelLabel" type="Label" parent="UI" unique_id=1963132935]
+offset_left = 16.0
+offset_top = 76.0
+offset_right = 260.0
+offset_bottom = 108.0
+theme_override_colors/font_color = Color(1, 1, 1, 0.85)
+theme_override_font_sizes/font_size = 18
+text = "Level: 01"
+
+[node name="CurrentLabel" type="Label" parent="UI" unique_id=1963132936]
+offset_left = 340.0
+offset_top = 16.0
+offset_right = 500.0
+offset_bottom = 36.0
+theme_override_colors/font_color = Color(1, 1, 1, 0.6)
+theme_override_font_sizes/font_size = 12
+text = "CURRENT"
+horizontal_alignment = 1
+
+[node name="NextLabel" type="Label" parent="UI" unique_id=1963132937]
+offset_left = 340.0
+offset_top = 88.0
+offset_right = 500.0
+offset_bottom = 108.0
+theme_override_colors/font_color = Color(1, 1, 1, 0.6)
+theme_override_font_sizes/font_size = 12
+text = "NEXT"
+horizontal_alignment = 1
+
+[node name="HintLabel" type="Label" parent="UI" unique_id=1885073844]
+offset_left = 16.0
+offset_top = 920.0
+offset_right = 524.0
+offset_bottom = 952.0
+theme_override_colors/font_color = Color(1, 1, 1, 0.5)
+theme_override_font_sizes/font_size = 14
+text = "Move mouse / touch to aim · Click / tap to drop"
+horizontal_alignment = 1
+
+[node name="GameOverPanel" type="Control" parent="UI" unique_id=-1409893451]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Overlay" type="ColorRect" parent="UI/GameOverPanel" unique_id=-1409893450]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.65)
+
+[node name="VBox" type="VBoxContainer" parent="UI/GameOverPanel" unique_id=-1409893449]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -140.0
+offset_top = -120.0
+offset_right = 140.0
+offset_bottom = 120.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="GameOverLabel" type="Label" parent="UI/GameOverPanel/VBox" unique_id=-1409893448]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 32
+text = "Game Over"
+horizontal_alignment = 1
+
+[node name="FinalScoreLabel" type="Label" parent="UI/GameOverPanel/VBox" unique_id=-1409893447]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.9)
+theme_override_font_sizes/font_size = 22
+text = "Score: 0"
+horizontal_alignment = 1
+
+[node name="GameOverBestLabel" type="Label" parent="UI/GameOverPanel/VBox" unique_id=-1409893446]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 0.75)
+theme_override_font_sizes/font_size = 18
+text = "Best: 0"
+horizontal_alignment = 1
+
+[node name="RetryButton" type="Button" parent="UI/GameOverPanel/VBox" unique_id=-1409893445]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Играть снова"

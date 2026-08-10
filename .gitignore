@@ -1,0 +1,18 @@
+# Godot 4+ specific ignores
+.godot/
+.nomedia
+~*.dll
+
+# Общие временные файлы Godot
+.import/
+export.cfg
+export_credentials.cfg
+*.tmp
+*.translation
+
+# Для C# / .NET / Mono проектов
+.mono/
+data_*/
+mono_crash.*.json
+*.csproj.user
+
