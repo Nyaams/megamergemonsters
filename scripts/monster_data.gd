@@ -6,6 +6,14 @@ extends RefCounted
 const MAX_LEVEL_INDEX: int = 14
 const SPAWN_POOL_SIZE: int = 5
 
+const EARLY_GAME_DURATION := 30.0
+const TUTORIAL_DROPS := 3
+const MID_GAME_DURATION := 60.0
+
+const JUNK_COLOR := Color("#666666")
+const BOMB_COLOR := Color("#222222")
+const BOMB_FUSE_COLOR := Color("#FFAA00")
+
 const _COLORS: Array[Color] = [
 	Color("#FF6B6B"),
 	Color("#FFA94D"),
@@ -54,8 +62,48 @@ static func can_merge(level_index: int) -> bool:
 	return level_index < MAX_LEVEL_INDEX
 
 
-static func get_spawn_pool() -> Array[int]:
-	var pool: Array[int] = []
-	for i in range(SPAWN_POOL_SIZE):
-		pool.append(i)
-	return pool
+static func get_spawn_cooldown(round_time: float) -> float:
+	if round_time < EARLY_GAME_DURATION:
+		return 0.45
+	if round_time < MID_GAME_DURATION:
+		return 0.38
+	return 0.30
+
+
+static func roll_spawn_entry(round_time: float, drops_count: int) -> SpawnEntry:
+	if drops_count < TUTORIAL_DROPS:
+		return SpawnEntry.normal(0)
+
+	if round_time < EARLY_GAME_DURATION:
+		return SpawnEntry.normal(randi() % 2)
+
+	if round_time < MID_GAME_DURATION:
+		if randf() < 0.10:
+			return SpawnEntry.junk()
+		return SpawnEntry.normal(randi() % 3)
+
+	if randf() < 0.05:
+		return SpawnEntry.bomb()
+	if randf() < 0.15:
+		return SpawnEntry.junk()
+	return SpawnEntry.normal(randi() % SPAWN_POOL_SIZE)
+
+
+static func get_visual_for_entry(entry: SpawnEntry) -> Dictionary:
+	match entry.kind:
+		SpawnEntry.Kind.JUNK:
+			var base := get_level_data(0)
+			return {
+				"radius": base["radius"],
+				"mass": base["mass"] * 0.9,
+				"color": JUNK_COLOR,
+			}
+		SpawnEntry.Kind.BOMB:
+			return {
+				"radius": 24.0,
+				"mass": 1.2,
+				"color": BOMB_COLOR,
+				"fuse_color": BOMB_FUSE_COLOR,
+			}
+		_:
+			return get_level_data(entry.level_index)

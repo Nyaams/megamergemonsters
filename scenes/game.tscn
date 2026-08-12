@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://c8gameproto01"]
 
 [ext_resource type="Script" uid="uid://dhpu6rdvejsyc" path="res://scripts/game.gd" id="1_game"]
+[ext_resource type="Script" uid="uid://dexkhm8nor01d" path="res://scripts/merge_effects.gd" id="2_effects"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_left"]
 size = Vector2(20, 800)
@@ -13,6 +14,9 @@ size = Vector2(420, 20)
 
 [node name="Game" type="Node2D" unique_id=1400804153]
 script = ExtResource("1_game")
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=-1894163142]
+position = Vector2(270, 480)
 
 [node name="BackgroundLayer" type="CanvasLayer" parent="." unique_id=639345781]
 layer = -1
@@ -93,7 +97,29 @@ scale = Vector2(0.65, 0.65)
 
 [node name="Monsters" type="Node2D" parent="." unique_id=1423001087]
 
+[node name="Effects" type="Node2D" parent="." unique_id=-871966208]
+script = ExtResource("2_effects")
+
 [node name="UI" type="CanvasLayer" parent="." unique_id=1814744038]
+
+[node name="FlashRect" type="ColorRect" parent="UI" unique_id=-480223257]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0.3)
+
+[node name="DangerVignette" type="ColorRect" parent="UI" unique_id=-480223256]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0)
 
 [node name="ScoreLabel" type="Label" parent="UI" unique_id=602374890]
 offset_left = 16.0
@@ -121,6 +147,17 @@ offset_bottom = 108.0
 theme_override_colors/font_color = Color(1, 1, 1, 0.85)
 theme_override_font_sizes/font_size = 18
 text = "Level: 01"
+
+[node name="ComboLabel" type="Label" parent="UI" unique_id=1963132938]
+visible = false
+offset_left = 170.0
+offset_top = 200.0
+offset_right = 370.0
+offset_bottom = 250.0
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 28
+text = "COMBO x2"
+horizontal_alignment = 1
 
 [node name="CurrentLabel" type="Label" parent="UI" unique_id=1963132936]
 offset_left = 340.0
