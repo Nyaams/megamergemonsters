@@ -1,0 +1,9 @@
+[gd_scene format=3 uid="uid://mergeguide01"]
+
+[ext_resource type="Script" path="res://scripts/merge_guide.gd" id="1_guide"]
+
+[node name="MergeGuide" type="Control"]
+custom_minimum_size = Vector2(280, 120)
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_guide")

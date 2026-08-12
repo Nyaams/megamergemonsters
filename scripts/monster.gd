@@ -39,7 +39,7 @@ func setup(new_level: int) -> void:
 
 func _apply_stats() -> void:
 	var visual := MonsterData.get_visual_for_entry(_entry_from_self())
-	var hitbox_margin := 0.94
+	var hitbox_margin := 0.9
 	var circle := CircleShape2D.new()
 	circle.radius = visual["radius"] * hitbox_margin
 	collision_shape.shape = circle

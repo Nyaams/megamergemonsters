@@ -1,0 +1,66 @@
+[gd_scene format=3 uid="uid://leaderboardpanel01"]
+
+[ext_resource type="Script" path="res://scripts/leaderboard_panel.gd" id="1_lb"]
+[ext_resource type="StyleBox" path="res://assets/ui/panel_frame.tres" id="2_frame"]
+
+[node name="LeaderboardPanel" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_lb")
+
+[node name="Overlay" type="ColorRect" parent="."]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.65)
+
+[node name="PanelFrame" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -180.0
+offset_top = -200.0
+offset_right = 180.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = ExtResource("2_frame")
+
+[node name="LeaderboardVBox" type="VBoxContainer" parent="PanelFrame"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="PanelFrame/LeaderboardVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Leaders"
+horizontal_alignment = 1
+
+[node name="EntriesLabel" type="Label" parent="PanelFrame/LeaderboardVBox"]
+custom_minimum_size = Vector2(0, 220)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Loading..."
+
+[node name="PlayerLabel" type="Label" parent="PanelFrame/LeaderboardVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 16
+text = "Your score: 0"
+horizontal_alignment = 1
+
+[node name="CloseButton" type="Button" parent="PanelFrame/LeaderboardVBox"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "Close"

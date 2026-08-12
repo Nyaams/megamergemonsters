@@ -37,8 +37,7 @@ static func update_ui(
 		combo_duration_btn.text = "%s (%s)" % [Locale.get_text("combo_duration"), Locale.get_text("max")]
 		combo_duration_btn.disabled = true
 
-	bomb_btn.text = "%s - %d" % [Locale.get_text("bomb_unlock"), UpgradeShop.BOMB_UNLOCK_COST]
+	var bomb_cost := UpgradeShop.bomb_purchase_cost(save)
+	var bomb_key := "bomb_buy_first" if save.bomb_count <= 0 else "bomb_buy_refill"
+	bomb_btn.text = Locale.get_text(bomb_key) % bomb_cost
 	bomb_btn.disabled = not UpgradeShop.can_buy_bomb(save)
-	if save.bomb_owned:
-		bomb_btn.text = Locale.get_text("bomb_owned")
-		bomb_btn.disabled = true

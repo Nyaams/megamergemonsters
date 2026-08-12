@@ -66,6 +66,11 @@ custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Settings"
 
+[node name="LeaderboardButton" type="Button" parent="VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Leaders"
+
 [node name="UpgradesPanel" type="Control" parent="."]
 visible = false
 layout_mode = 1
@@ -183,6 +188,11 @@ text = "Sound: on"
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Language"
+
+[node name="AuthButton" type="Button" parent="SettingsPanel/SettingsVBox"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "Sign in"
 
 [node name="SettingsCloseButton" type="Button" parent="SettingsPanel/SettingsVBox"]
 custom_minimum_size = Vector2(0, 44)

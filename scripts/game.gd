@@ -3,6 +3,7 @@ extends Node2D
 enum State { PLAYING, PAUSED, GAME_OVER }
 
 const MONSTER_SCENE := preload("res://scenes/monster.tscn")
+const MERGE_GUIDE_SCENE := preload("res://scenes/merge_guide.tscn")
 
 const DANGER_TIMEOUT := 2.0
 const SETTLED_VELOCITY := 30.0
@@ -21,31 +22,36 @@ const WALL_THICKNESS := 20.0
 @onready var bottom_wall: StaticBody2D = $Walls/BottomWall
 @onready var flash_rect: ColorRect = $UI/FlashRect
 @onready var danger_vignette: ColorRect = $UI/DangerVignette
+@onready var hud: Control = $UI/HUD
 
-@onready var score_label: Label = $UI/HUD/TopBar/ScoreLabel
-@onready var best_label: Label = $UI/HUD/TopBar/BestLabel
+@onready var score_label: Label = $UI/HUD/TopBar/StatsVBox/ScoreLabel
+@onready var best_label: Label = $UI/HUD/TopBar/StatsVBox/BestLabel
 @onready var coins_label: Label = $UI/HUD/TopBar/CoinsLabel
 @onready var combo_label: Label = $UI/HUD/ComboLabel
 @onready var next_preview: TextureRect = $UI/HUD/NextPanel/NextPreview
 
 @onready var pause_button: Button = $UI/HUD/ActionBar/PauseButton
-@onready var settings_button: Button = $UI/HUD/ActionBar/SettingsButton
 @onready var bomb_button: TextureButton = $UI/HUD/AbilityBar/BombButton
+@onready var bomb_count_label: Label = $UI/HUD/AbilityBar/BombCountLabel
 
 @onready var pause_panel: Control = $UI/PausePanel
 @onready var settings_panel: Control = $UI/SettingsPanel
 @onready var upgrades_panel: Control = $UI/UpgradesPanel
 @onready var game_over_panel: Control = $UI/GameOverPanel
+@onready var leaderboard_panel: Control = $UI/LeaderboardPanel
 
 @onready var final_score_label: Label = $UI/GameOverPanel/GameOverVBox/FinalScoreLabel
 @onready var game_over_best_label: Label = $UI/GameOverPanel/GameOverVBox/GameOverBestLabel
 @onready var coins_earned_label: Label = $UI/GameOverPanel/GameOverVBox/CoinsEarnedLabel
 @onready var retry_button: Button = $UI/GameOverPanel/GameOverVBox/RetryButton
 @onready var continue_button: Button = $UI/GameOverPanel/GameOverVBox/ContinueButton
+@onready var ad_continue_button: Button = $UI/GameOverPanel/GameOverVBox/AdContinueButton
+@onready var game_over_menu_button: Button = $UI/GameOverPanel/GameOverVBox/GameOverMenuButton
 @onready var upgrades_from_game_over: Button = $UI/GameOverPanel/GameOverVBox/GameOverUpgradesButton
 
 @onready var sound_btn: Button = $UI/SettingsPanel/SettingsVBox/SoundButton
 @onready var language_btn: Button = $UI/SettingsPanel/SettingsVBox/LanguageButton
+@onready var auth_btn: Button = $UI/SettingsPanel/SettingsVBox/AuthButton
 @onready var settings_close_btn: Button = $UI/SettingsPanel/SettingsVBox/SettingsCloseButton
 
 @onready var upgrades_coins_label: Label = $UI/UpgradesPanel/UpgradesVBox/UpgradesCoinsLabel
@@ -60,6 +66,7 @@ const WALL_THICKNESS := 20.0
 @onready var pause_settings_btn: Button = $UI/PausePanel/PauseVBox/PauseSettingsButton
 @onready var pause_menu_btn: Button = $UI/PausePanel/PauseVBox/PauseMenuButton
 @onready var pause_label: Label = $UI/PausePanel/PauseVBox/PauseLabel
+@onready var pause_vbox: VBoxContainer = $UI/PausePanel/PauseVBox
 @onready var next_label: Label = $UI/HUD/NextPanel/NextLabel
 @onready var settings_title: Label = $UI/SettingsPanel/SettingsVBox/SettingsTitle
 @onready var upgrades_title: Label = $UI/UpgradesPanel/UpgradesVBox/UpgradesTitle
@@ -87,18 +94,26 @@ var _danger_timer: float = 0.0
 var _round_time: float = 0.0
 var _drops_count: int = 0
 var _combo_hide_timer: float = 0.0
-var _extra_life_used: bool = false
+var _revive_used: bool = false
 var _round_milestones: Array[int] = []
 var _last_coins_earned: int = 0
+var _platform_paused: bool = false
+var _new_best_this_round: bool = false
 
 
 func _ready() -> void:
 	_save.load()
+	YandexManager.load_cloud_save_async(_save)
 	Locale.load_from_save(_save)
+	AudioManager.apply_settings()
 	_combo_tracker.window = UpgradeShop.get_combo_window(_save.combo_duration_level)
 	effects.setup(camera, flash_rect)
 	_danger_feedback.setup(field_sprite, danger_line, danger_vignette)
+	_setup_panels()
 	_connect_buttons()
+	YandexManager.platform_pause.connect(_on_platform_pause)
+	YandexManager.platform_resume.connect(_on_platform_resume)
+	YandexManager.sdk_ready.connect(func(): YandexManager.notify_loading_ready())
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	_on_viewport_resized()
 	_apply_locale()
@@ -109,18 +124,30 @@ func _ready() -> void:
 		_start_round()
 
 
+func _setup_panels() -> void:
+	UIHelpers.wrap_panel($UI/PausePanel/PauseVBox)
+	UIHelpers.wrap_panel($UI/SettingsPanel/SettingsVBox)
+	UIHelpers.wrap_panel($UI/UpgradesPanel/UpgradesVBox)
+	UIHelpers.wrap_panel($UI/GameOverPanel/GameOverVBox)
+	var guide := MERGE_GUIDE_SCENE.instantiate()
+	pause_vbox.add_child(guide)
+	pause_vbox.move_child(guide, pause_vbox.get_child_count() - 1)
+
+
 func _connect_buttons() -> void:
 	pause_button.pressed.connect(_on_pause_pressed)
-	settings_button.pressed.connect(_on_settings_pressed)
 	bomb_button.pressed.connect(_on_bomb_pressed)
 	retry_button.pressed.connect(_on_retry_pressed)
 	continue_button.pressed.connect(_on_continue_pressed)
+	ad_continue_button.pressed.connect(_on_ad_continue_pressed)
+	game_over_menu_button.pressed.connect(_on_game_over_menu_pressed)
 	upgrades_from_game_over.pressed.connect(_on_upgrades_pressed)
 	pause_resume_btn.pressed.connect(_on_resume_pressed)
 	pause_restart_btn.pressed.connect(_on_restart_pressed)
 	pause_settings_btn.pressed.connect(_on_settings_pressed)
 	pause_menu_btn.pressed.connect(_on_main_menu_pressed)
 	settings_close_btn.pressed.connect(_on_settings_close)
+	auth_btn.pressed.connect(_on_auth_pressed)
 	sound_btn.pressed.connect(_on_toggle_sound)
 	language_btn.pressed.connect(_on_toggle_language)
 	upgrades_close_btn.pressed.connect(_on_upgrades_close)
@@ -132,7 +159,6 @@ func _connect_buttons() -> void:
 
 func _apply_locale() -> void:
 	pause_button.text = Locale.get_text("pause")
-	settings_button.text = Locale.get_text("settings")
 	pause_label.text = Locale.get_text("pause")
 	pause_resume_btn.text = Locale.get_text("resume")
 	pause_restart_btn.text = Locale.get_text("restart")
@@ -142,10 +168,13 @@ func _apply_locale() -> void:
 	upgrades_title.text = Locale.get_text("upgrades")
 	settings_close_btn.text = Locale.get_text("close")
 	upgrades_close_btn.text = Locale.get_text("close")
+	auth_btn.text = Locale.get_text("auth_login")
 	next_label.text = Locale.get_text("next")
 	game_over_label.text = Locale.get_text("game_over")
 	retry_button.text = Locale.get_text("play_again")
 	continue_button.text = Locale.get_text("continue_life")
+	ad_continue_button.text = Locale.get_text("watch_ad_continue")
+	game_over_menu_button.text = Locale.get_text("main_menu")
 	upgrades_from_game_over.text = Locale.get_text("upgrades")
 	_update_settings_ui()
 	_update_ui()
@@ -160,7 +189,9 @@ func _on_viewport_resized() -> void:
 	drop_y = layout["drop_y"]
 	danger_line_y = layout["danger_y"]
 	camera.position = layout["center"]
-	camera.zoom = Vector2(layout["zoom"], layout["zoom"])
+	var zoom: float = layout["zoom"]
+	camera.zoom = Vector2(zoom, zoom)
+	hud.scale = Vector2(zoom, zoom)
 	_apply_container_geometry()
 	if current_entry:
 		drop_x = clampf(drop_x, container_left + _preview_radius(current_entry), container_right - _preview_radius(current_entry))
@@ -208,7 +239,8 @@ func _start_round() -> void:
 	_danger_timer = 0.0
 	_round_time = 0.0
 	_drops_count = 0
-	_extra_life_used = false
+	_revive_used = false
+	_new_best_this_round = false
 	_round_milestones.clear()
 	_last_coins_earned = 0
 	can_drop = true
@@ -223,7 +255,10 @@ func _start_round() -> void:
 	_init_queue()
 	_hide_all_panels()
 	_save.clear_session()
+	_save.total_games += 1
 	_update_ui()
+	YandexManager.notify_gameplay_started()
+	AudioManager.set_gameplay_active(true)
 
 
 func _hide_all_panels() -> void:
@@ -231,6 +266,7 @@ func _hide_all_panels() -> void:
 	settings_panel.hide()
 	upgrades_panel.hide()
 	game_over_panel.hide()
+	leaderboard_panel.hide()
 
 
 func _clear_monsters() -> void:
@@ -312,18 +348,25 @@ func _trigger_game_over() -> void:
 	state = State.GAME_OVER
 	preview_current.visible = false
 	aim_line.visible = false
+	AudioManager.set_gameplay_active(false)
+	AudioManager.play_game_over()
+	YandexManager.notify_gameplay_stopped()
 
-	if score > _save.best_score:
+	_new_best_this_round = score > _save.best_score
+	if _new_best_this_round:
 		_save.best_score = score
+		YandexManager.upload_score(score)
 
 	_award_round_coins()
+	_save.total_score += score
 	_save.clear_session()
 	_save.save()
 
 	final_score_label.text = "%s: %d" % [Locale.get_text("score"), score]
 	game_over_best_label.text = "%s: %d" % [Locale.get_text("best"), _save.best_score]
 	coins_earned_label.text = "%s: +%d" % [Locale.get_text("coins"), _last_coins_earned]
-	continue_button.visible = _save.extra_life_owned and not _extra_life_used
+	continue_button.visible = _save.extra_life_owned and not _revive_used
+	ad_continue_button.visible = not _revive_used and YandexManager.sdk_initialized
 	game_over_panel.show()
 	_update_ui()
 
@@ -346,10 +389,8 @@ func _award_round_coins() -> void:
 	_save.unlock_milestones(new_milestones)
 
 
-func _on_continue_pressed() -> void:
-	if not _save.extra_life_owned or _extra_life_used:
-		return
-	_extra_life_used = true
+func _do_revive() -> void:
+	_revive_used = true
 	state = State.PLAYING
 	_danger_timer = 0.0
 	game_over_panel.hide()
@@ -357,10 +398,37 @@ func _on_continue_pressed() -> void:
 	aim_line.visible = true
 	_danger_feedback.reset()
 	_save_session()
+	YandexManager.notify_gameplay_started()
+	AudioManager.set_gameplay_active(true)
+	_update_ui()
+
+
+func _on_continue_pressed() -> void:
+	if not _save.extra_life_owned or _revive_used:
+		return
+	_do_revive()
+
+
+func _on_ad_continue_pressed() -> void:
+	if _revive_used:
+		return
+	var rewarded := false
+	YandexManager.show_rewarded(
+		func(): rewarded = true,
+		func(_was_shown: bool):
+			if rewarded:
+				_do_revive()
+			elif state == State.GAME_OVER:
+				YandexManager.notify_gameplay_stopped()
+	)
 
 
 func _on_retry_pressed() -> void:
-	_start_round()
+	YandexManager.show_interstitial(func(_was_shown: bool): _start_round())
+
+
+func _on_game_over_menu_pressed() -> void:
+	YandexManager.show_interstitial(func(_was_shown: bool): GameFlow.go_to_main_menu())
 
 
 func _on_restart_pressed() -> void:
@@ -373,6 +441,8 @@ func _on_pause_pressed() -> void:
 	state = State.PAUSED
 	_save_session()
 	pause_panel.show()
+	YandexManager.notify_gameplay_stopped()
+	AudioManager.set_gameplay_active(false)
 
 
 func _on_resume_pressed() -> void:
@@ -380,11 +450,34 @@ func _on_resume_pressed() -> void:
 		return
 	state = State.PLAYING
 	pause_panel.hide()
+	YandexManager.notify_gameplay_started()
+	AudioManager.set_gameplay_active(true)
 
 
 func _on_main_menu_pressed() -> void:
 	_save_session()
+	YandexManager.notify_gameplay_stopped()
 	GameFlow.go_to_main_menu()
+
+
+func _on_platform_pause() -> void:
+	if state != State.PLAYING:
+		return
+	_platform_paused = true
+	state = State.PAUSED
+	pause_panel.show()
+	AudioManager.set_gameplay_active(false)
+
+
+func _on_platform_resume() -> void:
+	if not _platform_paused:
+		return
+	_platform_paused = false
+	if state == State.PAUSED:
+		state = State.PLAYING
+		pause_panel.hide()
+		YandexManager.notify_gameplay_started()
+		AudioManager.set_gameplay_active(true)
 
 
 func _on_settings_pressed() -> void:
@@ -396,9 +489,14 @@ func _on_settings_close() -> void:
 	settings_panel.hide()
 
 
+func _on_auth_pressed() -> void:
+	YandexManager.offer_auth()
+
+
 func _on_upgrades_pressed() -> void:
 	_update_upgrades_ui()
 	upgrades_panel.show()
+	upgrades_panel.move_to_front()
 
 
 func _on_upgrades_close() -> void:
@@ -409,6 +507,9 @@ func _on_toggle_sound() -> void:
 	Locale.sound_enabled = not Locale.sound_enabled
 	Locale.apply_to_save(_save)
 	_save.save()
+	AudioManager.apply_settings()
+	if state == State.PLAYING:
+		AudioManager.set_gameplay_active(true)
 	_update_settings_ui()
 
 
@@ -453,20 +554,29 @@ func _on_bomb_pressed() -> void:
 
 	var candidates: Array[Monster] = []
 	for node in get_tree().get_nodes_in_group("monsters"):
-		if node is Monster:
-			var m := node as Monster
-			if m.kind == SpawnEntry.Kind.NORMAL and m.get_level() <= 2:
-				candidates.append(m)
+		if not node is Monster:
+			continue
+		var m := node as Monster
+		if m.kind == SpawnEntry.Kind.JUNK:
+			candidates.append(m)
+		elif m.kind == SpawnEntry.Kind.NORMAL and m.get_level() <= 2:
+			candidates.append(m)
 
 	if candidates.is_empty():
 		return
 
 	candidates.sort_custom(func(a: Monster, b: Monster) -> bool:
+		var ra: float = a.get_visual_data()["radius"]
+		var rb: float = b.get_visual_data()["radius"]
+		if absf(ra - rb) > 0.01:
+			return ra < rb
+		if a.kind == SpawnEntry.Kind.JUNK and b.kind != SpawnEntry.Kind.JUNK:
+			return true
 		return a.get_level() < b.get_level()
 	)
 
 	var remove_count := mini(randi_range(2, 3), candidates.size())
-	if not UpgradeShop.spend_bomb_cost(_save):
+	if not UpgradeShop.use_bomb(_save):
 		return
 
 	var center := Vector2.ZERO
@@ -548,6 +658,7 @@ func _on_monster_merged(new_level: int, pos: Vector2, score_gained: int) -> void
 	var final_score := score_gained * multiplier
 	score += final_score
 	highest_level = maxi(highest_level, new_level)
+	_save.total_merges += 1
 
 	var level_1based := new_level + 1
 	if CoinRewards.MILESTONE_BONUSES.has(level_1based) and not _round_milestones.has(level_1based):
@@ -585,6 +696,7 @@ func _show_combo(multiplier: int) -> void:
 	var tween := combo_label.create_tween()
 	tween.tween_property(combo_label, "scale", Vector2.ONE, 0.2).set_ease(Tween.EASE_OUT)
 	_combo_hide_timer = 1.5
+	AudioManager.play_combo()
 
 
 func _update_previews() -> void:
@@ -595,15 +707,22 @@ func _update_previews() -> void:
 
 	var next_visual := MonsterData.get_visual_for_entry(next_entry)
 	next_preview.texture = next_visual["sprite"]
+	var ns = next_visual["scale"]
+	var preview_scale: float = ns if ns is float else (ns as Vector2).x
+	var preview_size := 36.0
+	next_preview.custom_minimum_size = Vector2(preview_size, preview_size)
+	next_preview.scale = Vector2.ONE
 
 
 func _update_ui() -> void:
 	score_label.text = "%s: %d" % [Locale.get_text("score"), score]
 	best_label.text = "%s: %d" % [Locale.get_text("best"), _save.best_score]
 	coins_label.text = "%s: %d" % [Locale.get_text("coins"), _save.coins]
-	bomb_button.visible = _save.bomb_owned
-	if _save.bomb_owned:
-		bomb_button.disabled = not UpgradeShop.can_use_bomb(_save) or state != State.PLAYING
+	bomb_button.visible = _save.bomb_count > 0
+	bomb_count_label.visible = _save.bomb_count > 0
+	if _save.bomb_count > 0:
+		bomb_count_label.text = Locale.get_text("bomb_count") % _save.bomb_count
+		bomb_button.disabled = state != State.PLAYING
 
 
 func _update_settings_ui() -> void:
@@ -664,7 +783,7 @@ func _save_session() -> void:
 		"highest_level": highest_level,
 		"round_time": _round_time,
 		"drops_count": _drops_count,
-		"extra_life_used": _extra_life_used,
+		"revive_used": _revive_used,
 		"round_milestones": _round_milestones.duplicate(),
 		"current_entry": _entry_to_dict(current_entry),
 		"next_entry": _entry_to_dict(next_entry),
@@ -681,7 +800,7 @@ func _restore_session(data: Dictionary) -> void:
 	highest_level = data.get("highest_level", 0)
 	_round_time = data.get("round_time", 0.0)
 	_drops_count = data.get("drops_count", 0)
-	_extra_life_used = data.get("extra_life_used", false)
+	_revive_used = data.get("revive_used", data.get("extra_life_used", false))
 	_round_milestones = []
 	for m in data.get("round_milestones", []):
 		_round_milestones.append(int(m))
@@ -708,3 +827,5 @@ func _restore_session(data: Dictionary) -> void:
 	_hide_all_panels()
 	_update_previews()
 	_update_ui()
+	YandexManager.notify_gameplay_started()
+	AudioManager.set_gameplay_active(true)

@@ -5,6 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://d3wikhioklfqw" path="res://assets/Sprites/background.png" id="3_bg"]
 [ext_resource type="Texture2D" uid="uid://b3uarwxfnreeb" path="res://assets/Sprites/field.png" id="4_field"]
 [ext_resource type="Texture2D" uid="uid://c4jw63dj43mr0" path="res://assets/Sprites/Bomb.png" id="5_bomb"]
+[ext_resource type="PackedScene" uid="uid://ly6q820wn42w" path="res://scenes/leaderboard_panel.tscn" id="6_lb"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_left"]
 size = Vector2(20, 800)
@@ -37,12 +38,12 @@ stretch_mode = 6
 
 [node name="FieldSprite" type="Sprite2D" parent="." unique_id=1982972117]
 texture = ExtResource("4_field")
-offset = Vector2(0, 30)
+offset = Vector2(0, 40)
 
 [node name="Walls" type="Node2D" parent="." unique_id=109900976]
 
 [node name="LeftWall" type="StaticBody2D" parent="Walls" unique_id=1685393649]
-position = Vector2(70, 500)
+position = Vector2(80, 500)
 collision_layer = 2
 collision_mask = 0
 
@@ -50,7 +51,7 @@ collision_mask = 0
 shape = SubResource("RectangleShape2D_left")
 
 [node name="RightWall" type="StaticBody2D" parent="Walls" unique_id=1449549461]
-position = Vector2(480, 500)
+position = Vector2(450, 500)
 collision_layer = 2
 collision_mask = 0
 
@@ -115,37 +116,48 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="TopBar" type="HBoxContainer" parent="UI/HUD" unique_id=1226947173]
-layout_mode = 0
+layout_mode = 1
 offset_left = 12.0
 offset_top = 8.0
 offset_right = 528.0
-offset_bottom = 40.0
+offset_bottom = 52.0
 mouse_filter = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 8
 
-[node name="ScoreLabel" type="Label" parent="UI/HUD/TopBar" unique_id=1678034145]
+[node name="StatsVBox" type="VBoxContainer" parent="UI/HUD/TopBar" unique_id=1242916717]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="ScoreLabel" type="Label" parent="UI/HUD/TopBar/StatsVBox" unique_id=1678034145]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Score: 0"
 
-[node name="BestLabel" type="Label" parent="UI/HUD/TopBar" unique_id=969714613]
+[node name="BestLabel" type="Label" parent="UI/HUD/TopBar/StatsVBox" unique_id=969714613]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 0.75)
 theme_override_font_sizes/font_size = 16
 text = "Best: 0"
+
+[node name="TopSpacer" type="Control" parent="UI/HUD/TopBar" unique_id=1139420110]
+layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="CoinsLabel" type="Label" parent="UI/HUD/TopBar" unique_id=1376551746]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
 theme_override_font_sizes/font_size = 16
 text = "Coins: 0"
+vertical_alignment = 1
 
 [node name="ActionBar" type="HBoxContainer" parent="UI/HUD" unique_id=1059647998]
-layout_mode = 0
-offset_left = 380.0
-offset_top = 8.0
-offset_right = 528.0
-offset_bottom = 52.0
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -96.0
+offset_bottom = 44.0
+grow_horizontal = 0
 theme_override_constants/separation = 8
 
 [node name="PauseButton" type="Button" parent="UI/HUD/ActionBar" unique_id=2041232867]
@@ -153,40 +165,41 @@ custom_minimum_size = Vector2(44, 44)
 layout_mode = 2
 text = "Pause"
 
-[node name="SettingsButton" type="Button" parent="UI/HUD/ActionBar" unique_id=272705643]
-custom_minimum_size = Vector2(44, 44)
-layout_mode = 2
-text = "Set"
-
-[node name="NextPanel" type="VBoxContainer" parent="UI/HUD" unique_id=1166996969]
+[node name="NextPanel" type="HBoxContainer" parent="UI/HUD" unique_id=1166996969]
 layout_mode = 0
 offset_left = 12.0
-offset_top = 48.0
-offset_right = 80.0
-offset_bottom = 120.0
+offset_top = 56.0
+offset_right = 120.0
+offset_bottom = 96.0
 mouse_filter = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 6
+alignment = 1
 
 [node name="NextLabel" type="Label" parent="UI/HUD/NextPanel" unique_id=963269505]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 0.6)
 theme_override_font_sizes/font_size = 12
 text = "NEXT"
+vertical_alignment = 1
 
 [node name="NextPreview" type="TextureRect" parent="UI/HUD/NextPanel" unique_id=488109362]
-custom_minimum_size = Vector2(48, 48)
+custom_minimum_size = Vector2(36, 36)
 layout_mode = 2
 mouse_filter = 2
 expand_mode = 1
-stretch_mode = 5
+stretch_mode = 4
 
 [node name="ComboLabel" type="Label" parent="UI/HUD" unique_id=1527999320]
 visible = false
-layout_mode = 0
-offset_left = 160.0
-offset_top = 180.0
-offset_right = 380.0
-offset_bottom = 230.0
+layout_mode = 1
+anchors_preset = 14
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_top = -19.5
+offset_bottom = 19.5
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
 theme_override_font_sizes/font_size = 28
 text = "COMBO x2"
@@ -205,6 +218,13 @@ layout_mode = 2
 texture_normal = ExtResource("5_bomb")
 ignore_texture_size = true
 stretch_mode = 5
+
+[node name="BombCountLabel" type="Label" parent="UI/HUD/AbilityBar" unique_id=1166634884]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 18
+text = "x1"
+vertical_alignment = 1
 
 [node name="PausePanel" type="Control" parent="UI" unique_id=1923362280]
 visible = false
@@ -315,6 +335,11 @@ text = "Sound: on"
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Language"
+
+[node name="AuthButton" type="Button" parent="UI/SettingsPanel/SettingsVBox" unique_id=763592627]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "Sign in"
 
 [node name="SettingsCloseButton" type="Button" parent="UI/SettingsPanel/SettingsVBox" unique_id=1087029152]
 custom_minimum_size = Vector2(0, 44)
@@ -452,13 +477,26 @@ custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Продолжить"
 
+[node name="AdContinueButton" type="Button" parent="UI/GameOverPanel/GameOverVBox" unique_id=1303121534]
+visible = false
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "Watch ad"
+
 [node name="RetryButton" type="Button" parent="UI/GameOverPanel/GameOverVBox" unique_id=2113155602]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Играть снова"
 
+[node name="GameOverMenuButton" type="Button" parent="UI/GameOverPanel/GameOverVBox" unique_id=1935750128]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "Main Menu"
+
 [node name="GameOverUpgradesButton" type="Button" parent="UI/GameOverPanel/GameOverVBox" unique_id=1740776810]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Upgrades"
+
+[node name="LeaderboardPanel" parent="UI" unique_id=1776416378 instance=ExtResource("6_lb")]

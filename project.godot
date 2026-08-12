@@ -19,6 +19,8 @@ config/icon="res://icon.svg"
 
 Locale="*res://scripts/locale.gd"
 GameFlow="*res://scripts/game_flow.gd"
+AudioManager="*res://scripts/audio_manager.gd"
+YandexManager="*res://scripts/yandex_manager.gd"
 
 [display]
 

@@ -6,7 +6,7 @@ const EXTRA_LIFE_COST := 1000
 const COIN_BONUS_BASE_COST := 100
 const COMBO_DURATION_BASE_COST := 250
 const BOMB_UNLOCK_COST := 500
-const BOMB_ABILITY_COST := 100
+const BOMB_REFILL_COST := 100
 
 
 static func coin_bonus_cost(current_level: int) -> int:
@@ -15,6 +15,12 @@ static func coin_bonus_cost(current_level: int) -> int:
 
 static func combo_duration_cost(current_level: int) -> int:
 	return COMBO_DURATION_BASE_COST * (current_level + 1)
+
+
+static func bomb_purchase_cost(save: SaveData) -> int:
+	if save.bomb_count <= 0:
+		return BOMB_UNLOCK_COST
+	return BOMB_REFILL_COST
 
 
 static func can_buy_extra_life(save: SaveData) -> bool:
@@ -30,7 +36,7 @@ static func can_buy_combo_duration(save: SaveData) -> bool:
 
 
 static func can_buy_bomb(save: SaveData) -> bool:
-	return not save.bomb_owned and save.coins >= BOMB_UNLOCK_COST
+	return save.coins >= bomb_purchase_cost(save)
 
 
 static func buy_extra_life(save: SaveData) -> bool:
@@ -63,8 +69,8 @@ static func buy_combo_duration(save: SaveData) -> bool:
 static func buy_bomb(save: SaveData) -> bool:
 	if not can_buy_bomb(save):
 		return false
-	save.coins -= BOMB_UNLOCK_COST
-	save.bomb_owned = true
+	save.coins -= bomb_purchase_cost(save)
+	save.bomb_count += 1
 	save.save()
 	return true
 
@@ -74,12 +80,12 @@ static func get_combo_window(level: int) -> float:
 
 
 static func can_use_bomb(save: SaveData) -> bool:
-	return save.bomb_owned and save.coins >= BOMB_ABILITY_COST
+	return save.bomb_count > 0
 
 
-static func spend_bomb_cost(save: SaveData) -> bool:
+static func use_bomb(save: SaveData) -> bool:
 	if not can_use_bomb(save):
 		return false
-	save.coins -= BOMB_ABILITY_COST
+	save.bomb_count -= 1
 	save.save()
 	return true
