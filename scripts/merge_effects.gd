@@ -95,6 +95,8 @@ func _play_shake(strength: float, duration: float) -> void:
 
 
 func _play_sound(frequency: float) -> void:
+	if not Locale.sound_enabled:
+		return
 	if not _audio:
 		return
 	var sample := AudioStreamGenerator.new()

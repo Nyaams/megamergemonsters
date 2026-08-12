@@ -7,10 +7,10 @@ var kind: Kind = Kind.NORMAL
 var level_index: int = 0
 
 
-static func normal(level_index: int = 0) -> SpawnEntry:
+static func normal(idx: int = 0) -> SpawnEntry:
 	var entry := SpawnEntry.new()
 	entry.kind = Kind.NORMAL
-	entry.level_index = level_index
+	entry.level_index = idx
 	return entry
 
 

@@ -11,9 +11,14 @@ config_version=5
 [application]
 
 config/name="megamergemonsters"
-run/main_scene="res://scenes/game.tscn"
+run/main_scene="res://scenes/main_menu.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
+
+[autoload]
+
+Locale="*res://scripts/locale.gd"
+GameFlow="*res://scripts/game_flow.gd"
 
 [display]
 

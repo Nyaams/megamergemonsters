@@ -1,89 +1,202 @@
 extends Node2D
 
-enum State { PLAYING, GAME_OVER }
+enum State { PLAYING, PAUSED, GAME_OVER }
 
 const MONSTER_SCENE := preload("res://scenes/monster.tscn")
-const SAVE_PATH := "user://save.cfg"
 
-const BASE_CONTAINER_LEFT := 70.0
-const BASE_CONTAINER_RIGHT := 470.0
-const CONTAINER_TOP := 120.0
-const CONTAINER_BOTTOM := 900.0
-const DROP_Y := CONTAINER_TOP + 10.0
-const DANGER_LINE_Y := CONTAINER_TOP + 30.0
 const DANGER_TIMEOUT := 2.0
 const SETTLED_VELOCITY := 30.0
 const WALL_THICKNESS := 20.0
-const NARROW_INTERVAL := 45.0
-const NARROW_STEP := 4.0
-const MAX_NARROW := 40.0
 
 @onready var camera: Camera2D = $Camera2D
 @onready var monsters_root: Node2D = $Monsters
 @onready var effects: MergeEffects = $Effects
 @onready var preview_current: Sprite2D = $PreviewCurrent
-@onready var preview_next: Sprite2D = $PreviewNext
-@onready var score_label: Label = $UI/ScoreLabel
-@onready var best_label: Label = $UI/BestLabel
-@onready var level_label: Label = $UI/LevelLabel
-@onready var combo_label: Label = $UI/ComboLabel
+@onready var field_sprite: Sprite2D = $FieldSprite
 @onready var drop_line: Line2D = $DropLine
+@onready var aim_line: Line2D = $AimLine
 @onready var danger_line: Line2D = $DangerLine
-@onready var game_over_panel: Control = $UI/GameOverPanel
-@onready var final_score_label: Label = $UI/GameOverPanel/VBox/FinalScoreLabel
-@onready var game_over_best_label: Label = $UI/GameOverPanel/VBox/GameOverBestLabel
-@onready var retry_button: Button = $UI/GameOverPanel/VBox/RetryButton
-@onready var flash_rect: ColorRect = $UI/FlashRect
-@onready var danger_vignette: ColorRect = $UI/DangerVignette
 @onready var left_wall: StaticBody2D = $Walls/LeftWall
 @onready var right_wall: StaticBody2D = $Walls/RightWall
-@onready var left_wall_visual: ColorRect = $BackgroundLayer/LeftWallVisual
-@onready var right_wall_visual: ColorRect = $BackgroundLayer/RightWallVisual
+@onready var bottom_wall: StaticBody2D = $Walls/BottomWall
+@onready var flash_rect: ColorRect = $UI/FlashRect
+@onready var danger_vignette: ColorRect = $UI/DangerVignette
+
+@onready var score_label: Label = $UI/HUD/TopBar/ScoreLabel
+@onready var best_label: Label = $UI/HUD/TopBar/BestLabel
+@onready var coins_label: Label = $UI/HUD/TopBar/CoinsLabel
+@onready var combo_label: Label = $UI/HUD/ComboLabel
+@onready var next_preview: TextureRect = $UI/HUD/NextPanel/NextPreview
+
+@onready var pause_button: Button = $UI/HUD/ActionBar/PauseButton
+@onready var settings_button: Button = $UI/HUD/ActionBar/SettingsButton
+@onready var bomb_button: TextureButton = $UI/HUD/AbilityBar/BombButton
+
+@onready var pause_panel: Control = $UI/PausePanel
+@onready var settings_panel: Control = $UI/SettingsPanel
+@onready var upgrades_panel: Control = $UI/UpgradesPanel
+@onready var game_over_panel: Control = $UI/GameOverPanel
+
+@onready var final_score_label: Label = $UI/GameOverPanel/GameOverVBox/FinalScoreLabel
+@onready var game_over_best_label: Label = $UI/GameOverPanel/GameOverVBox/GameOverBestLabel
+@onready var coins_earned_label: Label = $UI/GameOverPanel/GameOverVBox/CoinsEarnedLabel
+@onready var retry_button: Button = $UI/GameOverPanel/GameOverVBox/RetryButton
+@onready var continue_button: Button = $UI/GameOverPanel/GameOverVBox/ContinueButton
+@onready var upgrades_from_game_over: Button = $UI/GameOverPanel/GameOverVBox/GameOverUpgradesButton
+
+@onready var sound_btn: Button = $UI/SettingsPanel/SettingsVBox/SoundButton
+@onready var language_btn: Button = $UI/SettingsPanel/SettingsVBox/LanguageButton
+@onready var settings_close_btn: Button = $UI/SettingsPanel/SettingsVBox/SettingsCloseButton
+
+@onready var upgrades_coins_label: Label = $UI/UpgradesPanel/UpgradesVBox/UpgradesCoinsLabel
+@onready var extra_life_btn: Button = $UI/UpgradesPanel/UpgradesVBox/ExtraLifeButton
+@onready var coin_bonus_btn: Button = $UI/UpgradesPanel/UpgradesVBox/CoinBonusButton
+@onready var combo_duration_btn: Button = $UI/UpgradesPanel/UpgradesVBox/ComboDurationButton
+@onready var bomb_unlock_btn: Button = $UI/UpgradesPanel/UpgradesVBox/BombUnlockButton
+@onready var upgrades_close_btn: Button = $UI/UpgradesPanel/UpgradesVBox/UpgradesCloseButton
+
+@onready var pause_resume_btn: Button = $UI/PausePanel/PauseVBox/ResumeButton
+@onready var pause_restart_btn: Button = $UI/PausePanel/PauseVBox/PauseRestartButton
+@onready var pause_settings_btn: Button = $UI/PausePanel/PauseVBox/PauseSettingsButton
+@onready var pause_menu_btn: Button = $UI/PausePanel/PauseVBox/PauseMenuButton
+@onready var pause_label: Label = $UI/PausePanel/PauseVBox/PauseLabel
+@onready var next_label: Label = $UI/HUD/NextPanel/NextLabel
+@onready var settings_title: Label = $UI/SettingsPanel/SettingsVBox/SettingsTitle
+@onready var upgrades_title: Label = $UI/UpgradesPanel/UpgradesVBox/UpgradesTitle
+@onready var game_over_label: Label = $UI/GameOverPanel/GameOverVBox/GameOverLabel
 
 var state: State = State.PLAYING
 var score: int = 0
-var best_score: int = 0
 var highest_level: int = 0
-var container_left: float = BASE_CONTAINER_LEFT
-var container_right: float = BASE_CONTAINER_RIGHT
+var container_left: float = 70.0
+var container_right: float = 470.0
+var container_top: float = 100.0
+var container_bottom: float = 900.0
+var drop_y: float = 110.0
+var danger_line_y: float = 130.0
 var current_entry: SpawnEntry
 var next_entry: SpawnEntry
-var drop_x: float = (BASE_CONTAINER_LEFT + BASE_CONTAINER_RIGHT) * 0.5
+var drop_x: float = 270.0
 var can_drop: bool = true
 
+var _save := SaveData.new()
+var _combo_tracker := ComboTracker.new()
+var _danger_feedback := DangerFeedback.new()
 var _cooldown_timer: float = 0.0
 var _danger_timer: float = 0.0
 var _round_time: float = 0.0
 var _drops_count: int = 0
-var _narrow_amount: float = 0.0
-var _next_narrow_at: float = NARROW_INTERVAL
-var _combo_tracker := ComboTracker.new()
-var _danger_feedback := DangerFeedback.new()
 var _combo_hide_timer: float = 0.0
+var _extra_life_used: bool = false
+var _round_milestones: Array[int] = []
+var _last_coins_earned: int = 0
 
 
 func _ready() -> void:
-	retry_button.pressed.connect(_on_retry_pressed)
+	_save.load()
+	Locale.load_from_save(_save)
+	_combo_tracker.window = UpgradeShop.get_combo_window(_save.combo_duration_level)
 	effects.setup(camera, flash_rect)
-	_danger_feedback.setup(left_wall_visual, right_wall_visual, danger_line, danger_vignette)
-	_load_best_score()
-	_apply_container_width(BASE_CONTAINER_LEFT, BASE_CONTAINER_RIGHT)
-	_setup_lines()
-	_start_round()
+	_danger_feedback.setup(field_sprite, danger_line, danger_vignette)
+	_connect_buttons()
+	get_viewport().size_changed.connect(_on_viewport_resized)
+	_on_viewport_resized()
+	_apply_locale()
+
+	if GameFlow.restore_session and _save.has_active_session:
+		_restore_session(_save.session_data)
+	else:
+		_start_round()
 
 
-func _setup_lines() -> void:
-	_update_line_positions()
+func _connect_buttons() -> void:
+	pause_button.pressed.connect(_on_pause_pressed)
+	settings_button.pressed.connect(_on_settings_pressed)
+	bomb_button.pressed.connect(_on_bomb_pressed)
+	retry_button.pressed.connect(_on_retry_pressed)
+	continue_button.pressed.connect(_on_continue_pressed)
+	upgrades_from_game_over.pressed.connect(_on_upgrades_pressed)
+	pause_resume_btn.pressed.connect(_on_resume_pressed)
+	pause_restart_btn.pressed.connect(_on_restart_pressed)
+	pause_settings_btn.pressed.connect(_on_settings_pressed)
+	pause_menu_btn.pressed.connect(_on_main_menu_pressed)
+	settings_close_btn.pressed.connect(_on_settings_close)
+	sound_btn.pressed.connect(_on_toggle_sound)
+	language_btn.pressed.connect(_on_toggle_language)
+	upgrades_close_btn.pressed.connect(_on_upgrades_close)
+	extra_life_btn.pressed.connect(_on_buy_extra_life)
+	coin_bonus_btn.pressed.connect(_on_buy_coin_bonus)
+	combo_duration_btn.pressed.connect(_on_buy_combo_duration)
+	bomb_unlock_btn.pressed.connect(_on_buy_bomb)
 
 
-func _update_line_positions() -> void:
+func _apply_locale() -> void:
+	pause_button.text = Locale.get_text("pause")
+	settings_button.text = Locale.get_text("settings")
+	pause_label.text = Locale.get_text("pause")
+	pause_resume_btn.text = Locale.get_text("resume")
+	pause_restart_btn.text = Locale.get_text("restart")
+	pause_settings_btn.text = Locale.get_text("settings")
+	pause_menu_btn.text = Locale.get_text("main_menu")
+	settings_title.text = Locale.get_text("settings")
+	upgrades_title.text = Locale.get_text("upgrades")
+	settings_close_btn.text = Locale.get_text("close")
+	upgrades_close_btn.text = Locale.get_text("close")
+	next_label.text = Locale.get_text("next")
+	game_over_label.text = Locale.get_text("game_over")
+	retry_button.text = Locale.get_text("play_again")
+	continue_button.text = Locale.get_text("continue_life")
+	upgrades_from_game_over.text = Locale.get_text("upgrades")
+	_update_settings_ui()
+	_update_ui()
+
+
+func _on_viewport_resized() -> void:
+	var layout := GameLayout.compute(get_viewport().get_visible_rect().size)
+	container_left = layout["left"]
+	container_right = layout["right"]
+	container_top = layout["top"]
+	container_bottom = layout["bottom"]
+	drop_y = layout["drop_y"]
+	danger_line_y = layout["danger_y"]
+	camera.position = layout["center"]
+	camera.zoom = Vector2(layout["zoom"], layout["zoom"])
+	_apply_container_geometry()
+	if current_entry:
+		drop_x = clampf(drop_x, container_left + _preview_radius(current_entry), container_right - _preview_radius(current_entry))
+
+
+func _apply_container_geometry() -> void:
+	var wall_center_y := (container_top + container_bottom) * 0.5
+	left_wall.position = Vector2(container_left - WALL_THICKNESS * 0.5, wall_center_y)
+	right_wall.position = Vector2(container_right + WALL_THICKNESS * 0.5, wall_center_y)
+	bottom_wall.position = Vector2((container_left + container_right) * 0.5, container_bottom + WALL_THICKNESS * 0.5)
+
+	var bottom_shape := bottom_wall.get_node("CollisionShape2D").shape as RectangleShape2D
+	bottom_shape.size = Vector2(container_right - container_left + WALL_THICKNESS * 2.0, WALL_THICKNESS)
+
+	field_sprite.position = Vector2((container_left + container_right) * 0.5, (container_top + container_bottom) * 0.5)
+	if field_sprite.texture:
+		var tex_size := field_sprite.texture.get_size()
+		field_sprite.scale = Vector2(
+			(container_right - container_left + 40.0) / tex_size.x,
+			(container_bottom - container_top + 40.0) / tex_size.y
+		)
+	_update_lines()
+
+
+func _update_lines() -> void:
 	drop_line.points = PackedVector2Array([
-		Vector2(container_left, DROP_Y),
-		Vector2(container_right, DROP_Y),
+		Vector2(container_left, drop_y),
+		Vector2(container_right, drop_y),
 	])
 	danger_line.points = PackedVector2Array([
-		Vector2(container_left, DANGER_LINE_Y),
-		Vector2(container_right, DANGER_LINE_Y),
+		Vector2(container_left, danger_line_y),
+		Vector2(container_right, danger_line_y),
+	])
+	aim_line.points = PackedVector2Array([
+		Vector2(drop_x, drop_y),
+		Vector2(drop_x, container_bottom),
 	])
 
 
@@ -95,18 +208,28 @@ func _start_round() -> void:
 	_danger_timer = 0.0
 	_round_time = 0.0
 	_drops_count = 0
-	_narrow_amount = 0.0
-	_next_narrow_at = NARROW_INTERVAL
+	_extra_life_used = false
+	_round_milestones.clear()
+	_last_coins_earned = 0
 	can_drop = true
-	drop_x = (BASE_CONTAINER_LEFT + BASE_CONTAINER_RIGHT) * 0.5
+	drop_x = (container_left + container_right) * 0.5
+	_combo_tracker.window = UpgradeShop.get_combo_window(_save.combo_duration_level)
 	_combo_tracker.reset()
 	_danger_feedback.reset()
 	combo_label.visible = false
 	_combo_hide_timer = 0.0
-	_apply_container_width(BASE_CONTAINER_LEFT, BASE_CONTAINER_RIGHT)
+	aim_line.visible = true
 	_clear_monsters()
 	_init_queue()
+	_hide_all_panels()
+	_save.clear_session()
 	_update_ui()
+
+
+func _hide_all_panels() -> void:
+	pause_panel.hide()
+	settings_panel.hide()
+	upgrades_panel.hide()
 	game_over_panel.hide()
 
 
@@ -128,7 +251,7 @@ func _advance_queue() -> void:
 
 
 func _roll_spawn_entry() -> SpawnEntry:
-	return MonsterData.roll_spawn_entry(_round_time, _drops_count)
+	return MonsterData.roll_spawn_entry(_round_time, _drops_count, highest_level)
 
 
 func _process(delta: float) -> void:
@@ -137,7 +260,6 @@ func _process(delta: float) -> void:
 
 	_round_time += delta
 	_combo_tracker.update(delta)
-	_update_progression()
 
 	if _cooldown_timer > 0.0:
 		_cooldown_timer -= delta
@@ -149,37 +271,10 @@ func _process(delta: float) -> void:
 			combo_label.visible = false
 
 	_update_drop_position_from_input()
-	preview_current.global_position = Vector2(drop_x, DROP_Y)
+	preview_current.global_position = Vector2(drop_x, drop_y)
 	preview_current.modulate.a = 0.55 if can_drop else 0.25
 	preview_current.visible = true
-
-
-func _update_progression() -> void:
-	if _round_time >= _next_narrow_at and _narrow_amount < MAX_NARROW:
-		_narrow_amount = minf(_narrow_amount + NARROW_STEP, MAX_NARROW)
-		_next_narrow_at += NARROW_INTERVAL
-		var left := BASE_CONTAINER_LEFT + _narrow_amount
-		var right := BASE_CONTAINER_RIGHT - _narrow_amount
-		_apply_container_width(left, right)
-
-
-func _apply_container_width(left: float, right: float) -> void:
-	container_left = left
-	container_right = right
-
-	var wall_center_y := (CONTAINER_TOP + CONTAINER_BOTTOM) * 0.5
-	left_wall.position = Vector2(left - WALL_THICKNESS * 0.5, wall_center_y)
-	right_wall.position = Vector2(right + WALL_THICKNESS * 0.5, wall_center_y)
-
-	left_wall_visual.offset_left = left - WALL_THICKNESS - 10.0
-	left_wall_visual.offset_right = left - 10.0
-	right_wall_visual.offset_left = right + 10.0
-	right_wall_visual.offset_right = right + WALL_THICKNESS + 10.0
-
-	_update_line_positions()
-
-	var radius := _preview_radius(current_entry)
-	drop_x = clampf(drop_x, container_left + radius, container_right - radius)
+	_update_lines()
 
 
 func _physics_process(delta: float) -> void:
@@ -206,7 +301,7 @@ func _check_danger_zone() -> bool:
 		var visual := monster.get_visual_data()
 		var radius: float = visual["radius"]
 		var top_y := monster.global_position.y - radius
-		if top_y < DANGER_LINE_Y and monster.linear_velocity.length() < SETTLED_VELOCITY:
+		if top_y < danger_line_y and monster.linear_velocity.length() < SETTLED_VELOCITY:
 			return true
 	return false
 
@@ -216,19 +311,173 @@ func _trigger_game_over() -> void:
 		return
 	state = State.GAME_OVER
 	preview_current.visible = false
+	aim_line.visible = false
 
-	if score > best_score:
-		best_score = score
-		_save_best_score()
+	if score > _save.best_score:
+		_save.best_score = score
 
-	final_score_label.text = "Score: %d" % score
-	game_over_best_label.text = "Best: %d" % best_score
+	_award_round_coins()
+	_save.clear_session()
+	_save.save()
+
+	final_score_label.text = "%s: %d" % [Locale.get_text("score"), score]
+	game_over_best_label.text = "%s: %d" % [Locale.get_text("best"), _save.best_score]
+	coins_earned_label.text = "%s: +%d" % [Locale.get_text("coins"), _last_coins_earned]
+	continue_button.visible = _save.extra_life_owned and not _extra_life_used
 	game_over_panel.show()
 	_update_ui()
 
 
+func _award_round_coins() -> void:
+	var max_level_1based := highest_level + 1
+	var new_milestones: Array[int] = []
+	for level in CoinRewards.MILESTONE_BONUSES.keys():
+		if max_level_1based >= level and not _save.milestones.has(level):
+			new_milestones.append(level)
+
+	var result := CoinRewards.calc_total_round_coins(
+		max_level_1based,
+		_save.coin_bonus_level,
+		new_milestones,
+		_save.milestones
+	)
+	_last_coins_earned = result["total"]
+	_save.coins += _last_coins_earned
+	_save.unlock_milestones(new_milestones)
+
+
+func _on_continue_pressed() -> void:
+	if not _save.extra_life_owned or _extra_life_used:
+		return
+	_extra_life_used = true
+	state = State.PLAYING
+	_danger_timer = 0.0
+	game_over_panel.hide()
+	preview_current.visible = true
+	aim_line.visible = true
+	_danger_feedback.reset()
+	_save_session()
+
+
 func _on_retry_pressed() -> void:
 	_start_round()
+
+
+func _on_restart_pressed() -> void:
+	_start_round()
+
+
+func _on_pause_pressed() -> void:
+	if state != State.PLAYING:
+		return
+	state = State.PAUSED
+	_save_session()
+	pause_panel.show()
+
+
+func _on_resume_pressed() -> void:
+	if state != State.PAUSED:
+		return
+	state = State.PLAYING
+	pause_panel.hide()
+
+
+func _on_main_menu_pressed() -> void:
+	_save_session()
+	GameFlow.go_to_main_menu()
+
+
+func _on_settings_pressed() -> void:
+	_update_settings_ui()
+	settings_panel.show()
+
+
+func _on_settings_close() -> void:
+	settings_panel.hide()
+
+
+func _on_upgrades_pressed() -> void:
+	_update_upgrades_ui()
+	upgrades_panel.show()
+
+
+func _on_upgrades_close() -> void:
+	upgrades_panel.hide()
+
+
+func _on_toggle_sound() -> void:
+	Locale.sound_enabled = not Locale.sound_enabled
+	Locale.apply_to_save(_save)
+	_save.save()
+	_update_settings_ui()
+
+
+func _on_toggle_language() -> void:
+	Locale.language = "en" if Locale.language == "ru" else "ru"
+	Locale.apply_to_save(_save)
+	_save.save()
+	_apply_locale()
+	_update_upgrades_ui()
+
+
+func _on_buy_extra_life() -> void:
+	if UpgradeShop.buy_extra_life(_save):
+		_update_upgrades_ui()
+		_update_ui()
+
+
+func _on_buy_coin_bonus() -> void:
+	if UpgradeShop.buy_coin_bonus(_save):
+		_update_upgrades_ui()
+		_update_ui()
+
+
+func _on_buy_combo_duration() -> void:
+	if UpgradeShop.buy_combo_duration(_save):
+		_combo_tracker.window = UpgradeShop.get_combo_window(_save.combo_duration_level)
+		_update_upgrades_ui()
+		_update_ui()
+
+
+func _on_buy_bomb() -> void:
+	if UpgradeShop.buy_bomb(_save):
+		_update_upgrades_ui()
+		_update_ui()
+
+
+func _on_bomb_pressed() -> void:
+	if state != State.PLAYING:
+		return
+	if not UpgradeShop.can_use_bomb(_save):
+		return
+
+	var candidates: Array[Monster] = []
+	for node in get_tree().get_nodes_in_group("monsters"):
+		if node is Monster:
+			var m := node as Monster
+			if m.kind == SpawnEntry.Kind.NORMAL and m.get_level() <= 2:
+				candidates.append(m)
+
+	if candidates.is_empty():
+		return
+
+	candidates.sort_custom(func(a: Monster, b: Monster) -> bool:
+		return a.get_level() < b.get_level()
+	)
+
+	var remove_count := mini(randi_range(2, 3), candidates.size())
+	if not UpgradeShop.spend_bomb_cost(_save):
+		return
+
+	var center := Vector2.ZERO
+	for i in range(remove_count):
+		center += candidates[i].global_position
+		candidates[i].queue_free()
+	center /= float(remove_count)
+
+	effects.play_explosion(center, 0)
+	_save_session()
+	_update_ui()
 
 
 func _preview_radius(entry: SpawnEntry) -> float:
@@ -244,6 +493,8 @@ func _update_drop_position_from_input() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if state != State.PLAYING:
+		return
+	if settings_panel.visible or pause_panel.visible or upgrades_panel.visible:
 		return
 
 	if event is InputEventScreenTouch:
@@ -271,11 +522,12 @@ func _set_drop_x_from_screen(screen_x: float) -> void:
 func _try_drop() -> void:
 	if state != State.PLAYING or not can_drop:
 		return
-	_spawn_from_entry(current_entry, Vector2(drop_x, DROP_Y))
+	_spawn_from_entry(current_entry, Vector2(drop_x, drop_y))
 	_drops_count += 1
 	_advance_queue()
 	_cooldown_timer = MonsterData.get_spawn_cooldown(_round_time)
 	can_drop = false
+	_save_session()
 
 
 func _spawn_from_entry(entry: SpawnEntry, pos: Vector2) -> Monster:
@@ -283,7 +535,6 @@ func _spawn_from_entry(entry: SpawnEntry, pos: Vector2) -> Monster:
 	monster.setup_from_entry(entry)
 	monster.global_position = pos
 	monster.merged.connect(_on_monster_merged)
-	monster.exploded.connect(_on_monster_exploded)
 	monster.junk_destroyed.connect(_on_junk_destroyed)
 	monsters_root.add_child(monster)
 	return monster
@@ -297,6 +548,11 @@ func _on_monster_merged(new_level: int, pos: Vector2, score_gained: int) -> void
 	var final_score := score_gained * multiplier
 	score += final_score
 	highest_level = maxi(highest_level, new_level)
+
+	var level_1based := new_level + 1
+	if CoinRewards.MILESTONE_BONUSES.has(level_1based) and not _round_milestones.has(level_1based):
+		_round_milestones.append(level_1based)
+
 	_update_ui()
 
 	if multiplier > 1:
@@ -315,25 +571,17 @@ func _spawn_merged_monster(new_level: int, pos: Vector2, final_score: int) -> vo
 	monster.linear_velocity = Vector2.ZERO
 	monster.angular_velocity = 0.0
 	effects.play_merge(pos, final_score, monster)
+	_save_session()
 
 
-func _on_monster_exploded(pos: Vector2, score_gained: int) -> void:
-	if state != State.PLAYING:
-		return
-	score += score_gained
-	_update_ui()
-	effects.play_explosion(pos, score_gained)
-
-
-func _on_junk_destroyed(_pos: Vector2) -> void:
-	effects.play_particles(_pos, Color(0.5, 0.5, 0.5, 0.8), 6)
+func _on_junk_destroyed(pos: Vector2) -> void:
+	effects.play_particles(pos, Color(0.5, 0.5, 0.5, 0.8), 6)
 
 
 func _show_combo(multiplier: int) -> void:
 	combo_label.text = "COMBO x%d" % multiplier
 	combo_label.visible = true
 	combo_label.scale = Vector2(1.4, 1.4)
-	combo_label.modulate.a = 1.0
 	var tween := combo_label.create_tween()
 	tween.tween_property(combo_label, "scale", Vector2.ONE, 0.2).set_ease(Tween.EASE_OUT)
 	_combo_hide_timer = 1.5
@@ -341,71 +589,122 @@ func _show_combo(multiplier: int) -> void:
 
 func _update_previews() -> void:
 	var current_visual := MonsterData.get_visual_for_entry(current_entry)
-	preview_current.texture = _create_preview_texture(current_visual)
+	preview_current.texture = current_visual["sprite"]
+	var cs = current_visual["scale"]
+	preview_current.scale = cs if cs is Vector2 else Vector2(cs, cs)
 
 	var next_visual := MonsterData.get_visual_for_entry(next_entry)
-	preview_next.texture = _create_preview_texture(next_visual)
-
-
-func _create_preview_texture(visual: Dictionary) -> ImageTexture:
-	var radius: float = visual["radius"]
-	var color: Color = visual["color"]
-	if visual.has("fuse_color"):
-		return _create_bomb_preview(radius)
-	return _create_circle_preview(radius, color)
-
-
-func _create_circle_preview(radius: float, color: Color) -> ImageTexture:
-	var size := maxi(int(radius * 2.0), 2)
-	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
-	image.fill(Color.TRANSPARENT)
-	var center := Vector2(radius, radius)
-	var r_sq := radius * radius
-	for y in range(size):
-		for x in range(size):
-			var offset := Vector2(x + 0.5, y + 0.5) - center
-			if offset.length_squared() <= r_sq:
-				image.set_pixel(x, y, color)
-	return ImageTexture.create_from_image(image)
-
-
-func _create_bomb_preview(radius: float) -> ImageTexture:
-	var size := maxi(int(radius * 2.0), 2)
-	var image := Image.create(size, size, false, Image.FORMAT_RGBA8)
-	image.fill(Color.TRANSPARENT)
-	var center := Vector2(radius, radius)
-	var r_sq := radius * radius
-	for y in range(size):
-		for x in range(size):
-			var offset := Vector2(x + 0.5, y + 0.5) - center
-			if offset.length_squared() <= r_sq:
-				image.set_pixel(x, y, MonsterData.BOMB_COLOR)
-	var fuse_center := Vector2(radius, radius * 0.35)
-	for y in range(size):
-		for x in range(size):
-			var offset := Vector2(x + 0.5, y + 0.5) - fuse_center
-			if offset.length_squared() <= 16.0:
-				image.set_pixel(x, y, MonsterData.BOMB_FUSE_COLOR)
-	return ImageTexture.create_from_image(image)
+	next_preview.texture = next_visual["sprite"]
 
 
 func _update_ui() -> void:
-	score_label.text = "Score: %d" % score
-	best_label.text = "Best: %d" % best_score
-	var level_name: String = MonsterData.get_level_data(highest_level)["name"]
-	level_label.text = "Level: %s" % level_name
+	score_label.text = "%s: %d" % [Locale.get_text("score"), score]
+	best_label.text = "%s: %d" % [Locale.get_text("best"), _save.best_score]
+	coins_label.text = "%s: %d" % [Locale.get_text("coins"), _save.coins]
+	bomb_button.visible = _save.bomb_owned
+	if _save.bomb_owned:
+		bomb_button.disabled = not UpgradeShop.can_use_bomb(_save) or state != State.PLAYING
 
 
-func _load_best_score() -> void:
-	var config := ConfigFile.new()
-	if config.load(SAVE_PATH) == OK:
-		best_score = config.get_value("game", "best_score", 0)
-		# Hook for future prestige system.
-		var _prestige: int = config.get_value("game", "prestige_level", 0)
+func _update_settings_ui() -> void:
+	sound_btn.text = Locale.get_text("sound_on") if Locale.sound_enabled else Locale.get_text("sound_off")
+	language_btn.text = "%s: %s" % [
+		Locale.get_text("language"),
+		Locale.get_text("lang_ru") if Locale.language == "ru" else Locale.get_text("lang_en"),
+	]
 
 
-func _save_best_score() -> void:
-	var config := ConfigFile.new()
-	config.load(SAVE_PATH)
-	config.set_value("game", "best_score", best_score)
-	config.save(SAVE_PATH)
+func _update_upgrades_ui() -> void:
+	UpgradesPanel.update_ui(
+		_save,
+		upgrades_coins_label,
+		extra_life_btn,
+		coin_bonus_btn,
+		combo_duration_btn,
+		bomb_unlock_btn
+	)
+
+
+func _entry_to_dict(entry: SpawnEntry) -> Dictionary:
+	return {"kind": entry.kind, "level_index": entry.level_index}
+
+
+func _entry_from_dict(data: Dictionary) -> SpawnEntry:
+	var kind: int = data.get("kind", SpawnEntry.Kind.NORMAL)
+	match kind:
+		SpawnEntry.Kind.JUNK:
+			return SpawnEntry.junk()
+		SpawnEntry.Kind.BOMB:
+			return SpawnEntry.bomb()
+		_:
+			return SpawnEntry.normal(data.get("level_index", 0))
+
+
+func _save_session() -> void:
+	if state == State.GAME_OVER:
+		return
+
+	var monsters_data: Array = []
+	for node in monsters_root.get_children():
+		if not node is Monster:
+			continue
+		var m := node as Monster
+		monsters_data.append({
+			"x": m.global_position.x,
+			"y": m.global_position.y,
+			"level": m.level,
+			"kind": m.kind,
+			"lv_x": m.linear_velocity.x,
+			"lv_y": m.linear_velocity.y,
+			"av": m.angular_velocity,
+		})
+
+	_save.save_session({
+		"score": score,
+		"highest_level": highest_level,
+		"round_time": _round_time,
+		"drops_count": _drops_count,
+		"extra_life_used": _extra_life_used,
+		"round_milestones": _round_milestones.duplicate(),
+		"current_entry": _entry_to_dict(current_entry),
+		"next_entry": _entry_to_dict(next_entry),
+		"drop_x": drop_x,
+		"cooldown_timer": _cooldown_timer,
+		"danger_timer": _danger_timer,
+		"monsters": monsters_data,
+	})
+
+
+func _restore_session(data: Dictionary) -> void:
+	state = State.PLAYING
+	score = data.get("score", 0)
+	highest_level = data.get("highest_level", 0)
+	_round_time = data.get("round_time", 0.0)
+	_drops_count = data.get("drops_count", 0)
+	_extra_life_used = data.get("extra_life_used", false)
+	_round_milestones = []
+	for m in data.get("round_milestones", []):
+		_round_milestones.append(int(m))
+	drop_x = data.get("drop_x", (container_left + container_right) * 0.5)
+	_cooldown_timer = data.get("cooldown_timer", 0.0)
+	_danger_timer = data.get("danger_timer", 0.0)
+	can_drop = _cooldown_timer <= 0.0
+
+	current_entry = _entry_from_dict(data.get("current_entry", {}))
+	next_entry = _entry_from_dict(data.get("next_entry", {}))
+
+	_combo_tracker.window = UpgradeShop.get_combo_window(_save.combo_duration_level)
+	_combo_tracker.reset()
+	_danger_feedback.reset()
+	aim_line.visible = true
+	_clear_monsters()
+
+	for md in data.get("monsters", []):
+		var entry := _entry_from_dict({"kind": md.get("kind", 0), "level_index": md.get("level", 0)})
+		var monster := _spawn_from_entry(entry, Vector2(md.get("x", 0.0), md.get("y", 0.0)))
+		monster.linear_velocity = Vector2(md.get("lv_x", 0.0), md.get("lv_y", 0.0))
+		monster.angular_velocity = md.get("av", 0.0)
+
+	_hide_all_panels()
+	_update_previews()
+	_update_ui()
