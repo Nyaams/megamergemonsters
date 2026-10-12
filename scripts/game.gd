@@ -3,7 +3,6 @@ extends Node2D
 enum State { PLAYING, PAUSED, GAME_OVER }
 
 const MONSTER_SCENE := preload("res://scenes/monster.tscn")
-const MERGE_GUIDE_SCENE := preload("res://scenes/merge_guide.tscn")
 
 const DANGER_TIMEOUT := 2.0
 const SETTLED_VELOCITY := 30.0
@@ -24,11 +23,11 @@ const WALL_THICKNESS := 20.0
 @onready var danger_vignette: ColorRect = $UI/DangerVignette
 @onready var hud: Control = $UI/HUD
 
-@onready var score_label: Label = $UI/HUD/TopBar/StatsVBox/ScoreLabel
-@onready var best_label: Label = $UI/HUD/TopBar/StatsVBox/BestLabel
-@onready var coins_label: Label = $UI/HUD/TopBar/CoinsLabel
+@onready var score_label: Label = $UI/HUD/HudPanel/HudVBox/HudBottomRow/StatsVBox/ScoreLabel
+@onready var best_label: Label = $UI/HUD/HudPanel/HudVBox/HudBottomRow/StatsVBox/BestLabel
+@onready var coins_value_label: Label = $UI/HUD/HudPanel/HudVBox/HudBottomRow/CoinsHBox/CoinsValueLabel
 @onready var combo_label: Label = $UI/HUD/ComboLabel
-@onready var next_preview: TextureRect = $UI/HUD/NextPanel/NextPreview
+@onready var next_preview: TextureRect = $UI/HUD/HudPanel/HudVBox/HudBottomRow/NextPanel/NextPreview
 
 @onready var pause_button: Button = $UI/HUD/ActionBar/PauseButton
 @onready var bomb_button: TextureButton = $UI/HUD/AbilityBar/BombButton
@@ -51,7 +50,6 @@ const WALL_THICKNESS := 20.0
 
 @onready var sound_btn: Button = $UI/SettingsPanel/SettingsVBox/SoundButton
 @onready var language_btn: Button = $UI/SettingsPanel/SettingsVBox/LanguageButton
-@onready var auth_btn: Button = $UI/SettingsPanel/SettingsVBox/AuthButton
 @onready var settings_close_btn: Button = $UI/SettingsPanel/SettingsVBox/SettingsCloseButton
 
 @onready var upgrades_coins_label: Label = $UI/UpgradesPanel/UpgradesVBox/UpgradesCoinsLabel
@@ -67,7 +65,7 @@ const WALL_THICKNESS := 20.0
 @onready var pause_menu_btn: Button = $UI/PausePanel/PauseVBox/PauseMenuButton
 @onready var pause_label: Label = $UI/PausePanel/PauseVBox/PauseLabel
 @onready var pause_vbox: VBoxContainer = $UI/PausePanel/PauseVBox
-@onready var next_label: Label = $UI/HUD/NextPanel/NextLabel
+@onready var next_label: Label = $UI/HUD/HudPanel/HudVBox/HudBottomRow/NextPanel/NextLabel
 @onready var settings_title: Label = $UI/SettingsPanel/SettingsVBox/SettingsTitle
 @onready var upgrades_title: Label = $UI/UpgradesPanel/UpgradesVBox/UpgradesTitle
 @onready var game_over_label: Label = $UI/GameOverPanel/GameOverVBox/GameOverLabel
@@ -129,9 +127,11 @@ func _setup_panels() -> void:
 	UIHelpers.wrap_panel($UI/SettingsPanel/SettingsVBox)
 	UIHelpers.wrap_panel($UI/UpgradesPanel/UpgradesVBox)
 	UIHelpers.wrap_panel($UI/GameOverPanel/GameOverVBox)
-	var guide := MERGE_GUIDE_SCENE.instantiate()
-	pause_vbox.add_child(guide)
-	pause_vbox.move_child(guide, pause_vbox.get_child_count() - 1)
+	UIHelpers.apply_readable_tree($UI/HUD/HudPanel)
+	UIHelpers.apply_readable_tree($UI/HUD/ComboLabel)
+	UIHelpers.apply_readable_tree($UI/HUD/AbilityBar)
+	UIHelpers.apply_readable_tree($UI/PausePanel)
+	UIHelpers.apply_readable_tree($UI/GameOverPanel)
 
 
 func _connect_buttons() -> void:
@@ -147,7 +147,6 @@ func _connect_buttons() -> void:
 	pause_settings_btn.pressed.connect(_on_settings_pressed)
 	pause_menu_btn.pressed.connect(_on_main_menu_pressed)
 	settings_close_btn.pressed.connect(_on_settings_close)
-	auth_btn.pressed.connect(_on_auth_pressed)
 	sound_btn.pressed.connect(_on_toggle_sound)
 	language_btn.pressed.connect(_on_toggle_language)
 	upgrades_close_btn.pressed.connect(_on_upgrades_close)
@@ -168,7 +167,6 @@ func _apply_locale() -> void:
 	upgrades_title.text = Locale.get_text("upgrades")
 	settings_close_btn.text = Locale.get_text("close")
 	upgrades_close_btn.text = Locale.get_text("close")
-	auth_btn.text = Locale.get_text("auth_login")
 	next_label.text = Locale.get_text("next")
 	game_over_label.text = Locale.get_text("game_over")
 	retry_button.text = Locale.get_text("play_again")
@@ -489,10 +487,6 @@ func _on_settings_close() -> void:
 	settings_panel.hide()
 
 
-func _on_auth_pressed() -> void:
-	YandexManager.offer_auth()
-
-
 func _on_upgrades_pressed() -> void:
 	_update_upgrades_ui()
 	upgrades_panel.show()
@@ -717,7 +711,7 @@ func _update_previews() -> void:
 func _update_ui() -> void:
 	score_label.text = "%s: %d" % [Locale.get_text("score"), score]
 	best_label.text = "%s: %d" % [Locale.get_text("best"), _save.best_score]
-	coins_label.text = "%s: %d" % [Locale.get_text("coins"), _save.coins]
+	coins_value_label.text = str(_save.coins)
 	bomb_button.visible = _save.bomb_count > 0
 	bomb_count_label.visible = _save.bomb_count > 0
 	if _save.bomb_count > 0:

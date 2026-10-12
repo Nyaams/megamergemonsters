@@ -22,6 +22,7 @@ func _build() -> void:
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.add_theme_font_size_override("font_size", 11)
 	hint.add_theme_color_override("font_color", Color(1, 1, 1, 0.65))
+	UIHelpers.apply_readable_label(hint)
 	root.add_child(hint)
 
 	for i in ROW_COUNT:
@@ -58,4 +59,5 @@ func _symbol(text: String) -> Label:
 	label.text = text
 	label.add_theme_font_size_override("font_size", 14)
 	label.add_theme_color_override("font_color", Color(1, 1, 1, 0.8))
+	UIHelpers.apply_readable_label(label)
 	return label

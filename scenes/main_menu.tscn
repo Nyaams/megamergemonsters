@@ -1,9 +1,11 @@
 [gd_scene format=3 uid="uid://mainmenu01"]
 
-[ext_resource type="Script" path="res://scripts/main_menu.gd" id="1_menu"]
-[ext_resource type="Texture2D" uid="uid://bryywt6xxolss" path="res://assets/Sprites/background.png" id="2_bg"]
+[ext_resource type="Script" uid="uid://cqaq4vbrxso0s" path="res://scripts/main_menu.gd" id="1_menu"]
+[ext_resource type="Texture2D" uid="uid://d3wikhioklfqw" path="res://assets/Sprites/background.png" id="2_bg"]
+[ext_resource type="StyleBox" path="res://assets/ui/panel_frame.tres" id="3_frame"]
+[ext_resource type="Texture2D" uid="uid://cn7a2a36wcv25" path="res://assets/Sprites/logo_ru.png" id="4_logo_ru"]
 
-[node name="MainMenu" type="Control"]
+[node name="MainMenu" type="Control" unique_id=1821748925]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -12,7 +14,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_menu")
 
-[node name="Background" type="TextureRect" parent="."]
+[node name="Background" type="TextureRect" parent="." unique_id=1826130791]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -24,54 +26,72 @@ texture = ExtResource("2_bg")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="VBox" type="VBoxContainer" parent="."]
+[node name="RootVBox" type="VBoxContainer" parent="." unique_id=147757914]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -140.0
-offset_top = -140.0
-offset_right = 140.0
-offset_bottom = 140.0
+offset_left = -160.0
+offset_top = -220.0
+offset_right = 160.0
+offset_bottom = 220.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 12
 alignment = 1
 
-[node name="Title" type="Label" parent="VBox"]
+[node name="Logo" type="TextureRect" parent="RootVBox" unique_id=1914351829]
+custom_minimum_size = Vector2(280, 72)
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
-text = "Mega Merge Monsters"
-horizontal_alignment = 1
+texture = ExtResource("4_logo_ru")
+stretch_mode = 5
 
-[node name="StartButton" type="Button" parent="VBox"]
-custom_minimum_size = Vector2(0, 48)
+[node name="AuthButton" type="Button" parent="RootVBox" unique_id=570347616]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "Войти в аккаунт"
+
+[node name="MenuPanel" type="PanelContainer" parent="RootVBox" unique_id=444906727]
+layout_mode = 2
+theme_override_styles/panel = ExtResource("3_frame")
+
+[node name="MenuVBox" type="VBoxContainer" parent="RootVBox/MenuPanel" unique_id=1618643734]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="StartButton" type="Button" parent="RootVBox/MenuPanel/MenuVBox" unique_id=1204790024]
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Start Game"
 
-[node name="ContinueButton" type="Button" parent="VBox"]
-custom_minimum_size = Vector2(0, 48)
+[node name="ContinueButton" type="Button" parent="RootVBox/MenuPanel/MenuVBox" unique_id=1668724126]
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Continue Game"
 
-[node name="UpgradesButton" type="Button" parent="VBox"]
-custom_minimum_size = Vector2(0, 48)
+[node name="UpgradesButton" type="Button" parent="RootVBox/MenuPanel/MenuVBox" unique_id=301696397]
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Upgrades"
 
-[node name="SettingsButton" type="Button" parent="VBox"]
-custom_minimum_size = Vector2(0, 48)
+[node name="SettingsButton" type="Button" parent="RootVBox/MenuPanel/MenuVBox" unique_id=921077334]
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Settings"
 
-[node name="LeaderboardButton" type="Button" parent="VBox"]
-custom_minimum_size = Vector2(0, 48)
+[node name="LeaderboardButton" type="Button" parent="RootVBox/MenuPanel/MenuVBox" unique_id=1638482056]
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Leaders"
 
-[node name="UpgradesPanel" type="Control" parent="."]
+[node name="RulesButton" type="Button" parent="RootVBox/MenuPanel/MenuVBox" unique_id=1223328492]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "Rules"
+
+[node name="RulesPanel" type="Control" parent="." unique_id=2010010748]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -79,9 +99,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 
-[node name="Overlay" type="ColorRect" parent="UpgradesPanel"]
+[node name="Overlay" type="ColorRect" parent="RulesPanel" unique_id=1275503692]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -90,7 +109,59 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0, 0, 0, 0.65)
 
-[node name="UpgradesVBox" type="VBoxContainer" parent="UpgradesPanel"]
+[node name="RulesFrame" type="PanelContainer" parent="RulesPanel" unique_id=137160462]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -170.0
+offset_top = -180.0
+offset_right = 170.0
+offset_bottom = 180.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = ExtResource("3_frame")
+
+[node name="RulesVBox" type="VBoxContainer" parent="RulesPanel/RulesFrame" unique_id=611264321]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="RulesTitle" type="Label" parent="RulesPanel/RulesFrame/RulesVBox" unique_id=483254875]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Rules"
+horizontal_alignment = 1
+
+[node name="RulesGuideHost" type="Control" parent="RulesPanel/RulesFrame/RulesVBox" unique_id=2137403911]
+custom_minimum_size = Vector2(0, 220)
+layout_mode = 2
+
+[node name="RulesCloseButton" type="Button" parent="RulesPanel/RulesFrame/RulesVBox" unique_id=1355614135]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "Close"
+
+[node name="UpgradesPanel" type="Control" parent="." unique_id=874269201]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Overlay" type="ColorRect" parent="UpgradesPanel" unique_id=146431]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.65)
+
+[node name="UpgradesVBox" type="VBoxContainer" parent="UpgradesPanel" unique_id=653185646]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -106,39 +177,39 @@ grow_vertical = 2
 theme_override_constants/separation = 10
 alignment = 1
 
-[node name="UpgradesTitle" type="Label" parent="UpgradesPanel/UpgradesVBox"]
+[node name="UpgradesTitle" type="Label" parent="UpgradesPanel/UpgradesVBox" unique_id=1005853853]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Upgrades"
 horizontal_alignment = 1
 
-[node name="UpgradesCoinsLabel" type="Label" parent="UpgradesPanel/UpgradesVBox"]
+[node name="UpgradesCoinsLabel" type="Label" parent="UpgradesPanel/UpgradesVBox" unique_id=1510162155]
 layout_mode = 2
 text = "Coins: 0"
 horizontal_alignment = 1
 
-[node name="ExtraLifeButton" type="Button" parent="UpgradesPanel/UpgradesVBox"]
+[node name="ExtraLifeButton" type="Button" parent="UpgradesPanel/UpgradesVBox" unique_id=1822505644]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 
-[node name="CoinBonusButton" type="Button" parent="UpgradesPanel/UpgradesVBox"]
+[node name="CoinBonusButton" type="Button" parent="UpgradesPanel/UpgradesVBox" unique_id=1195661745]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 
-[node name="ComboDurationButton" type="Button" parent="UpgradesPanel/UpgradesVBox"]
+[node name="ComboDurationButton" type="Button" parent="UpgradesPanel/UpgradesVBox" unique_id=450273512]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 
-[node name="BombUnlockButton" type="Button" parent="UpgradesPanel/UpgradesVBox"]
+[node name="BombUnlockButton" type="Button" parent="UpgradesPanel/UpgradesVBox" unique_id=1886553541]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 
-[node name="UpgradesCloseButton" type="Button" parent="UpgradesPanel/UpgradesVBox"]
+[node name="UpgradesCloseButton" type="Button" parent="UpgradesPanel/UpgradesVBox" unique_id=117068278]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Close"
 
-[node name="SettingsPanel" type="Control" parent="."]
+[node name="SettingsPanel" type="Control" parent="." unique_id=1217735649]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -146,9 +217,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 
-[node name="Overlay" type="ColorRect" parent="SettingsPanel"]
+[node name="Overlay" type="ColorRect" parent="SettingsPanel" unique_id=929012774]
 layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -157,7 +227,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0, 0, 0, 0.65)
 
-[node name="SettingsVBox" type="VBoxContainer" parent="SettingsPanel"]
+[node name="SettingsVBox" type="VBoxContainer" parent="SettingsPanel" unique_id=1872588908]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -173,28 +243,23 @@ grow_vertical = 2
 theme_override_constants/separation = 12
 alignment = 1
 
-[node name="SettingsTitle" type="Label" parent="SettingsPanel/SettingsVBox"]
+[node name="SettingsTitle" type="Label" parent="SettingsPanel/SettingsVBox" unique_id=312433816]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Settings"
 horizontal_alignment = 1
 
-[node name="SoundButton" type="Button" parent="SettingsPanel/SettingsVBox"]
+[node name="SoundButton" type="Button" parent="SettingsPanel/SettingsVBox" unique_id=508703857]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Sound: on"
 
-[node name="LanguageButton" type="Button" parent="SettingsPanel/SettingsVBox"]
+[node name="LanguageButton" type="Button" parent="SettingsPanel/SettingsVBox" unique_id=1696605595]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Language"
 
-[node name="AuthButton" type="Button" parent="SettingsPanel/SettingsVBox"]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-text = "Sign in"
-
-[node name="SettingsCloseButton" type="Button" parent="SettingsPanel/SettingsVBox"]
+[node name="SettingsCloseButton" type="Button" parent="SettingsPanel/SettingsVBox" unique_id=692158817]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Close"

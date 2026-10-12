@@ -6,7 +6,7 @@ signal platform_resume
 signal cloud_loaded(data: Dictionary)
 signal leaderboard_loaded(data: Dictionary)
 
-const LEADERBOARD_NAME := "best_score"
+const LEADERBOARD_NAME := "bestScore"
 const CLOUD_DEBOUNCE := 3.0
 
 var is_web := false

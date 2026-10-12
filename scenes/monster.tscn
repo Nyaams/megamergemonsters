@@ -1,20 +1,18 @@
 [gd_scene format=3 uid="uid://bqx7monster01"]
 
-[ext_resource type="Script" path="res://scripts/monster.gd" id="1_monster"]
+[ext_resource type="Script" uid="uid://768t80um3sa7" path="res://scripts/monster.gd" id="1_monster"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_default"]
 radius = 22.0
 
-[node name="Monster" type="RigidBody2D"]
-collision_layer = 1
+[node name="Monster" type="RigidBody2D" unique_id=1293618251]
 collision_mask = 3
+continuous_cd = 2
 contact_monitor = true
 max_contacts_reported = 8
-continuous_cd = 2
-lock_rotation = false
 script = ExtResource("1_monster")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=776572768]
 shape = SubResource("CircleShape2D_default")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1221040233]
