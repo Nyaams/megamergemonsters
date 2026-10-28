@@ -8,9 +8,11 @@ const LEADERBOARD_SCENE := preload("res://scenes/leaderboard_panel.tscn")
 @onready var start_btn: Button = $RootVBox/MenuPanel/MenuVBox/StartButton
 @onready var continue_btn: Button = $RootVBox/MenuPanel/MenuVBox/ContinueButton
 @onready var upgrades_btn: Button = $RootVBox/MenuPanel/MenuVBox/UpgradesButton
-@onready var settings_btn: Button = $RootVBox/MenuPanel/MenuVBox/SettingsButton
 @onready var leaderboard_btn: Button = $RootVBox/MenuPanel/MenuVBox/LeaderboardButton
 @onready var rules_btn: Button = $RootVBox/MenuPanel/MenuVBox/RulesButton
+
+@onready var sound_btn: Button = $TopBar/SoundButton
+@onready var language_btn: Button = $TopBar/LanguageButton
 
 @onready var rules_panel: Control = $RulesPanel
 @onready var rules_title: Label = $RulesPanel/RulesFrame/RulesVBox/RulesTitle
@@ -18,8 +20,7 @@ const LEADERBOARD_SCENE := preload("res://scenes/leaderboard_panel.tscn")
 @onready var rules_close_btn: Button = $RulesPanel/RulesFrame/RulesVBox/RulesCloseButton
 
 @onready var upgrades_panel: Control = $UpgradesPanel
-@onready var settings_panel: Control = $SettingsPanel
-
+@onready var upgrades_title: Label = $UpgradesPanel/UpgradesVBox/UpgradesTitle
 @onready var upgrades_coins_label: Label = $UpgradesPanel/UpgradesVBox/UpgradesCoinsLabel
 @onready var extra_life_btn: Button = $UpgradesPanel/UpgradesVBox/ExtraLifeButton
 @onready var coin_bonus_btn: Button = $UpgradesPanel/UpgradesVBox/CoinBonusButton
@@ -27,14 +28,9 @@ const LEADERBOARD_SCENE := preload("res://scenes/leaderboard_panel.tscn")
 @onready var bomb_unlock_btn: Button = $UpgradesPanel/UpgradesVBox/BombUnlockButton
 @onready var upgrades_close_btn: Button = $UpgradesPanel/UpgradesVBox/UpgradesCloseButton
 
-@onready var sound_btn: Button = $SettingsPanel/SettingsVBox/SoundButton
-@onready var language_btn: Button = $SettingsPanel/SettingsVBox/LanguageButton
-@onready var settings_close_btn: Button = $SettingsPanel/SettingsVBox/SettingsCloseButton
-@onready var settings_title: Label = $SettingsPanel/SettingsVBox/SettingsTitle
-@onready var upgrades_title: Label = $UpgradesPanel/UpgradesVBox/UpgradesTitle
-
 var _save := SaveData.new()
 var _leaderboard_panel: Control
+var _guide: Control
 
 
 func _ready() -> void:
@@ -44,12 +40,14 @@ func _ready() -> void:
 	AudioManager.apply_settings()
 
 	UIHelpers.wrap_panel($UpgradesPanel/UpgradesVBox)
-	UIHelpers.wrap_panel($SettingsPanel/SettingsVBox)
 	UIHelpers.apply_readable_tree(self)
 
-	var guide := MERGE_GUIDE_SCENE.instantiate()
-	rules_guide_host.add_child(guide)
-	guide.set_anchors_preset(Control.PRESET_FULL_RECT)
+	UIHelpers.style_icon_button(sound_btn)
+	UIHelpers.style_icon_button(language_btn)
+
+	_guide = MERGE_GUIDE_SCENE.instantiate()
+	rules_guide_host.add_child(_guide)
+	_guide.set_anchors_preset(Control.PRESET_FULL_RECT)
 
 	_leaderboard_panel = LEADERBOARD_SCENE.instantiate()
 	add_child(_leaderboard_panel)
@@ -57,17 +55,16 @@ func _ready() -> void:
 	start_btn.pressed.connect(_on_start_pressed)
 	continue_btn.pressed.connect(_on_continue_pressed)
 	upgrades_btn.pressed.connect(_on_upgrades_pressed)
-	settings_btn.pressed.connect(_on_settings_pressed)
 	leaderboard_btn.pressed.connect(_on_leaderboard_pressed)
 	rules_btn.pressed.connect(_on_rules_pressed)
 	auth_btn.pressed.connect(func(): YandexManager.offer_auth())
 	upgrades_close_btn.pressed.connect(func(): upgrades_panel.hide())
-	settings_close_btn.pressed.connect(func(): settings_panel.hide())
 	rules_close_btn.pressed.connect(func(): rules_panel.hide())
 	extra_life_btn.pressed.connect(_on_buy_extra_life)
 	coin_bonus_btn.pressed.connect(_on_buy_coin_bonus)
 	combo_duration_btn.pressed.connect(_on_buy_combo_duration)
 	bomb_unlock_btn.pressed.connect(_on_buy_bomb)
+
 	sound_btn.pressed.connect(_on_toggle_sound)
 	language_btn.pressed.connect(_on_toggle_language)
 
@@ -76,7 +73,7 @@ func _ready() -> void:
 
 	_apply_locale()
 	_update_continue_button()
-	_update_settings_ui()
+	_update_quick_controls()
 
 
 func _apply_locale() -> void:
@@ -85,15 +82,15 @@ func _apply_locale() -> void:
 	start_btn.text = Locale.get_text("start_game")
 	continue_btn.text = Locale.get_text("continue_game")
 	upgrades_btn.text = Locale.get_text("upgrades")
-	settings_btn.text = Locale.get_text("settings")
 	leaderboard_btn.text = Locale.get_text("leaderboard")
 	rules_btn.text = Locale.get_text("rules")
-	rules_title.text = Locale.get_text("rules")
+	rules_title.text = Locale.get_text("rules_title")
 	upgrades_title.text = Locale.get_text("upgrades")
-	settings_title.text = Locale.get_text("settings")
 	upgrades_close_btn.text = Locale.get_text("close")
-	settings_close_btn.text = Locale.get_text("close")
 	rules_close_btn.text = Locale.get_text("close")
+	if _guide and _guide.has_method("apply_locale"):
+		_guide.apply_locale()
+	_update_quick_controls()
 
 
 func _update_continue_button() -> void:
@@ -105,7 +102,7 @@ func _on_cloud_loaded(_data: Dictionary) -> void:
 	AudioManager.apply_settings()
 	_apply_locale()
 	_update_continue_button()
-	_update_settings_ui()
+	_update_quick_controls()
 
 
 func _on_start_pressed() -> void:
@@ -125,12 +122,9 @@ func _on_upgrades_pressed() -> void:
 	upgrades_panel.show()
 
 
-func _on_settings_pressed() -> void:
-	_update_settings_ui()
-	settings_panel.show()
-
-
 func _on_rules_pressed() -> void:
+	if _guide and _guide.has_method("apply_locale"):
+		_guide.apply_locale()
 	rules_panel.show()
 
 
@@ -150,11 +144,13 @@ func _update_upgrades_ui() -> void:
 	)
 
 
-func _update_settings_ui() -> void:
-	sound_btn.text = Locale.get_text("sound_on") if Locale.sound_enabled else Locale.get_text("sound_off")
-	language_btn.text = "%s: %s" % [
+func _update_quick_controls() -> void:
+	sound_btn.icon = UIHelpers.get_sound_icon(Locale.sound_enabled)
+	language_btn.icon = UIHelpers.get_lang_icon(Locale.language)
+	sound_btn.tooltip_text = Locale.get_text("sound_on" if Locale.sound_enabled else "sound_off")
+	language_btn.tooltip_text = "%s (%s)" % [
 		Locale.get_text("language"),
-		Locale.get_text("lang_ru") if Locale.language == "ru" else Locale.get_text("lang_en"),
+		Locale.get_text("lang_ru" if Locale.language == "ru" else "lang_en"),
 	]
 
 
@@ -183,7 +179,7 @@ func _on_toggle_sound() -> void:
 	Locale.apply_to_save(_save)
 	_save.save()
 	AudioManager.apply_settings()
-	_update_settings_ui()
+	_update_quick_controls()
 
 
 func _on_toggle_language() -> void:
@@ -191,5 +187,5 @@ func _on_toggle_language() -> void:
 	Locale.apply_to_save(_save)
 	_save.save()
 	_apply_locale()
-	_update_settings_ui()
+	_update_quick_controls()
 	_update_upgrades_ui()

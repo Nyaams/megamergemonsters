@@ -193,13 +193,22 @@ layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -52.0
+offset_left = -104.0
 offset_top = 6.0
 offset_right = -8.0
 offset_bottom = 50.0
 grow_horizontal = 0
 grow_vertical = 0
 theme_override_constants/separation = 8
+alignment = 2
+
+[node name="SoundButton" type="Button" parent="UI/HUD/ActionBar" unique_id=2077571775]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+icon_alignment = 1
+expand_icon = true
 
 [node name="PauseButton" type="Button" parent="UI/HUD/ActionBar" unique_id=2041232867]
 custom_minimum_size = Vector2(44, 44)
@@ -298,70 +307,31 @@ custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Restart"
 
-[node name="PauseSettingsButton" type="Button" parent="UI/PausePanel/PauseVBox" unique_id=96169323]
-custom_minimum_size = Vector2(0, 44)
+[node name="PauseQuickControls" type="HBoxContainer" parent="UI/PausePanel/PauseVBox" unique_id=96169323]
 layout_mode = 2
-text = "Settings"
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="PauseLanguageButton" type="Button" parent="UI/PausePanel/PauseVBox/PauseQuickControls" unique_id=1838795313]
+custom_minimum_size = Vector2(56, 44)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+icon_alignment = 1
+expand_icon = true
+
+[node name="PauseSoundButton" type="Button" parent="UI/PausePanel/PauseVBox/PauseQuickControls" unique_id=1087029152]
+custom_minimum_size = Vector2(56, 44)
+layout_mode = 2
+focus_mode = 0
+mouse_default_cursor_shape = 2
+icon_alignment = 1
+expand_icon = true
 
 [node name="PauseMenuButton" type="Button" parent="UI/PausePanel/PauseVBox" unique_id=410985576]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Main Menu"
-
-[node name="SettingsPanel" type="Control" parent="UI" unique_id=577151733]
-visible = false
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="SettingsOverlay" type="ColorRect" parent="UI/SettingsPanel" unique_id=2009187842]
-layout_mode = 0
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-color = Color(0, 0, 0, 0.65)
-
-[node name="SettingsVBox" type="VBoxContainer" parent="UI/SettingsPanel" unique_id=829437846]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -140.0
-offset_top = -90.0
-offset_right = 140.0
-offset_bottom = 90.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 12
-alignment = 1
-
-[node name="SettingsTitle" type="Label" parent="UI/SettingsPanel/SettingsVBox" unique_id=715823528]
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "Settings"
-horizontal_alignment = 1
-
-[node name="SoundButton" type="Button" parent="UI/SettingsPanel/SettingsVBox" unique_id=2077571775]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-text = "Sound: on"
-
-[node name="LanguageButton" type="Button" parent="UI/SettingsPanel/SettingsVBox" unique_id=1838795313]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-text = "Language"
-
-[node name="SettingsCloseButton" type="Button" parent="UI/SettingsPanel/SettingsVBox" unique_id=1087029152]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-text = "Close"
 
 [node name="UpgradesPanel" type="Control" parent="UI" unique_id=1437154362]
 visible = false

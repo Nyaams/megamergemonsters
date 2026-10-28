@@ -30,11 +30,11 @@ const WALL_THICKNESS := 20.0
 @onready var next_preview: TextureRect = $UI/HUD/HudPanel/HudVBox/HudBottomRow/NextPanel/NextPreview
 
 @onready var pause_button: Button = $UI/HUD/ActionBar/PauseButton
+@onready var hud_sound_btn: Button = $UI/HUD/ActionBar/SoundButton
 @onready var bomb_button: TextureButton = $UI/HUD/AbilityBar/BombButton
 @onready var bomb_count_label: Label = $UI/HUD/AbilityBar/BombCountLabel
 
 @onready var pause_panel: Control = $UI/PausePanel
-@onready var settings_panel: Control = $UI/SettingsPanel
 @onready var upgrades_panel: Control = $UI/UpgradesPanel
 @onready var game_over_panel: Control = $UI/GameOverPanel
 @onready var leaderboard_panel: Control = $UI/LeaderboardPanel
@@ -48,10 +48,6 @@ const WALL_THICKNESS := 20.0
 @onready var game_over_menu_button: Button = $UI/GameOverPanel/GameOverVBox/GameOverMenuButton
 @onready var upgrades_from_game_over: Button = $UI/GameOverPanel/GameOverVBox/GameOverUpgradesButton
 
-@onready var sound_btn: Button = $UI/SettingsPanel/SettingsVBox/SoundButton
-@onready var language_btn: Button = $UI/SettingsPanel/SettingsVBox/LanguageButton
-@onready var settings_close_btn: Button = $UI/SettingsPanel/SettingsVBox/SettingsCloseButton
-
 @onready var upgrades_coins_label: Label = $UI/UpgradesPanel/UpgradesVBox/UpgradesCoinsLabel
 @onready var extra_life_btn: Button = $UI/UpgradesPanel/UpgradesVBox/ExtraLifeButton
 @onready var coin_bonus_btn: Button = $UI/UpgradesPanel/UpgradesVBox/CoinBonusButton
@@ -61,12 +57,12 @@ const WALL_THICKNESS := 20.0
 
 @onready var pause_resume_btn: Button = $UI/PausePanel/PauseVBox/ResumeButton
 @onready var pause_restart_btn: Button = $UI/PausePanel/PauseVBox/PauseRestartButton
-@onready var pause_settings_btn: Button = $UI/PausePanel/PauseVBox/PauseSettingsButton
+@onready var pause_sound_btn: Button = $UI/PausePanel/PauseVBox/PauseQuickControls/PauseSoundButton
+@onready var pause_lang_btn: Button = $UI/PausePanel/PauseVBox/PauseQuickControls/PauseLanguageButton
 @onready var pause_menu_btn: Button = $UI/PausePanel/PauseVBox/PauseMenuButton
 @onready var pause_label: Label = $UI/PausePanel/PauseVBox/PauseLabel
 @onready var pause_vbox: VBoxContainer = $UI/PausePanel/PauseVBox
 @onready var next_label: Label = $UI/HUD/HudPanel/HudVBox/HudBottomRow/NextPanel/NextLabel
-@onready var settings_title: Label = $UI/SettingsPanel/SettingsVBox/SettingsTitle
 @onready var upgrades_title: Label = $UI/UpgradesPanel/UpgradesVBox/UpgradesTitle
 @onready var game_over_label: Label = $UI/GameOverPanel/GameOverVBox/GameOverLabel
 
@@ -124,7 +120,6 @@ func _ready() -> void:
 
 func _setup_panels() -> void:
 	UIHelpers.wrap_panel($UI/PausePanel/PauseVBox)
-	UIHelpers.wrap_panel($UI/SettingsPanel/SettingsVBox)
 	UIHelpers.wrap_panel($UI/UpgradesPanel/UpgradesVBox)
 	UIHelpers.wrap_panel($UI/GameOverPanel/GameOverVBox)
 	UIHelpers.apply_readable_tree($UI/HUD/HudPanel)
@@ -133,9 +128,14 @@ func _setup_panels() -> void:
 	UIHelpers.apply_readable_tree($UI/PausePanel)
 	UIHelpers.apply_readable_tree($UI/GameOverPanel)
 
+	UIHelpers.style_icon_button(hud_sound_btn)
+	UIHelpers.style_icon_button(pause_sound_btn)
+	UIHelpers.style_icon_button(pause_lang_btn)
+
 
 func _connect_buttons() -> void:
 	pause_button.pressed.connect(_on_pause_pressed)
+	hud_sound_btn.pressed.connect(_on_toggle_sound)
 	bomb_button.pressed.connect(_on_bomb_pressed)
 	retry_button.pressed.connect(_on_retry_pressed)
 	continue_button.pressed.connect(_on_continue_pressed)
@@ -144,11 +144,9 @@ func _connect_buttons() -> void:
 	upgrades_from_game_over.pressed.connect(_on_upgrades_pressed)
 	pause_resume_btn.pressed.connect(_on_resume_pressed)
 	pause_restart_btn.pressed.connect(_on_restart_pressed)
-	pause_settings_btn.pressed.connect(_on_settings_pressed)
+	pause_sound_btn.pressed.connect(_on_toggle_sound)
+	pause_lang_btn.pressed.connect(_on_toggle_language)
 	pause_menu_btn.pressed.connect(_on_main_menu_pressed)
-	settings_close_btn.pressed.connect(_on_settings_close)
-	sound_btn.pressed.connect(_on_toggle_sound)
-	language_btn.pressed.connect(_on_toggle_language)
 	upgrades_close_btn.pressed.connect(_on_upgrades_close)
 	extra_life_btn.pressed.connect(_on_buy_extra_life)
 	coin_bonus_btn.pressed.connect(_on_buy_coin_bonus)
@@ -161,11 +159,8 @@ func _apply_locale() -> void:
 	pause_label.text = Locale.get_text("pause")
 	pause_resume_btn.text = Locale.get_text("resume")
 	pause_restart_btn.text = Locale.get_text("restart")
-	pause_settings_btn.text = Locale.get_text("settings")
 	pause_menu_btn.text = Locale.get_text("main_menu")
-	settings_title.text = Locale.get_text("settings")
 	upgrades_title.text = Locale.get_text("upgrades")
-	settings_close_btn.text = Locale.get_text("close")
 	upgrades_close_btn.text = Locale.get_text("close")
 	next_label.text = Locale.get_text("next")
 	game_over_label.text = Locale.get_text("game_over")
@@ -261,7 +256,6 @@ func _start_round() -> void:
 
 func _hide_all_panels() -> void:
 	pause_panel.hide()
-	settings_panel.hide()
 	upgrades_panel.hide()
 	game_over_panel.hide()
 	leaderboard_panel.hide()
@@ -478,15 +472,6 @@ func _on_platform_resume() -> void:
 		AudioManager.set_gameplay_active(true)
 
 
-func _on_settings_pressed() -> void:
-	_update_settings_ui()
-	settings_panel.show()
-
-
-func _on_settings_close() -> void:
-	settings_panel.hide()
-
-
 func _on_upgrades_pressed() -> void:
 	_update_upgrades_ui()
 	upgrades_panel.show()
@@ -598,7 +583,7 @@ func _update_drop_position_from_input() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if state != State.PLAYING:
 		return
-	if settings_panel.visible or pause_panel.visible or upgrades_panel.visible:
+	if pause_panel.visible or upgrades_panel.visible:
 		return
 
 	if event is InputEventScreenTouch:
@@ -720,11 +705,20 @@ func _update_ui() -> void:
 
 
 func _update_settings_ui() -> void:
-	sound_btn.text = Locale.get_text("sound_on") if Locale.sound_enabled else Locale.get_text("sound_off")
-	language_btn.text = "%s: %s" % [
+	var sound_icon := UIHelpers.get_sound_icon(Locale.sound_enabled)
+	var sound_tip := Locale.get_text("sound_on" if Locale.sound_enabled else "sound_off")
+	hud_sound_btn.icon = sound_icon
+	hud_sound_btn.tooltip_text = sound_tip
+	pause_sound_btn.icon = sound_icon
+	pause_sound_btn.tooltip_text = sound_tip
+
+	var lang_icon := UIHelpers.get_lang_icon(Locale.language)
+	var lang_tip := "%s (%s)" % [
 		Locale.get_text("language"),
-		Locale.get_text("lang_ru") if Locale.language == "ru" else Locale.get_text("lang_en"),
+		Locale.get_text("lang_ru" if Locale.language == "ru" else "lang_en"),
 	]
+	pause_lang_btn.icon = lang_icon
+	pause_lang_btn.tooltip_text = lang_tip
 
 
 func _update_upgrades_ui() -> void:
