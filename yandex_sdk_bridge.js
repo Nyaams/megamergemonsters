@@ -3,26 +3,66 @@ window.YandexBridge = {
 	ysdk: null,
 	player: null,
 	ready: false,
+	_initPromise: null,
 
-	init: async function () {
+	init: function () {
+		if (this.ready) {
+			return Promise.resolve({ ok: true, lang: this.getLanguage() });
+		}
+		if (this._initPromise) {
+			return this._initPromise;
+		}
+		this._initPromise = this._doInit();
+		return this._initPromise;
+	},
+
+	_doInit: async function () {
+		// Wait for YaGames script if still downloading
+		if (typeof YaGames === 'undefined') {
+			for (let i = 0; i < 35; i++) {
+				await new Promise((r) => setTimeout(r, 100));
+				if (typeof YaGames !== 'undefined') break;
+			}
+		}
 		if (typeof YaGames === 'undefined') {
 			return { ok: false, error: 'YaGames undefined' };
 		}
 		try {
 			this.ysdk = await YaGames.init();
 			this.ready = true;
-			if (this.ysdk.features && this.ysdk.features.LoadingAPI) {
-				this.ysdk.features.LoadingAPI.ready();
-			}
+
+			// Handle platform pause/resume
 			this.ysdk.on('game_api_pause', () => {
 				if (window.godotYandexPause) window.godotYandexPause();
 			});
 			this.ysdk.on('game_api_resume', () => {
 				if (window.godotYandexResume) window.godotYandexResume();
 			});
-			return { ok: true };
+
+			// Handle browser tab switching and window blur/focus
+			document.addEventListener('visibilitychange', () => {
+				if (document.hidden) {
+					if (window.godotYandexPause) window.godotYandexPause();
+				} else {
+					if (window.godotYandexResume) window.godotYandexResume();
+				}
+			});
+			window.addEventListener('blur', () => {
+				if (window.godotYandexPause) window.godotYandexPause();
+			});
+			window.addEventListener('focus', () => {
+				if (window.godotYandexResume) window.godotYandexResume();
+			});
+
+			return { ok: true, lang: this.getLanguage() };
 		} catch (e) {
 			return { ok: false, error: String(e) };
+		}
+	},
+
+	loadingReady: function () {
+		if (this.ysdk && this.ysdk.features && this.ysdk.features.LoadingAPI) {
+			this.ysdk.features.LoadingAPI.ready();
 		}
 	},
 
@@ -38,14 +78,27 @@ window.YandexBridge = {
 		}
 	},
 
+	getLanguage: function () {
+		if (this.ysdk && this.ysdk.environment && this.ysdk.environment.i18n && this.ysdk.environment.i18n.lang) {
+			return this.ysdk.environment.i18n.lang;
+		}
+		try {
+			var params = new URLSearchParams(window.location.search);
+			var urlLang = params.get('lang');
+			if (urlLang) return urlLang;
+		} catch (e) {}
+		var nav = navigator.language || navigator.userLanguage || 'ru';
+		return nav;
+	},
+
 	getPlayer: async function () {
 		if (!this.ysdk) return null;
 		try {
-			this.player = await this.ysdk.getPlayer();
+			this.player = await this.ysdk.getPlayer({ scopes: false });
 			return {
 				authorized: this.player.isAuthorized(),
-				name: this.player.getName(),
-				id: this.player.getUniqueID(),
+				name: this.player.getName ? this.player.getName() : '',
+				id: this.player.getUniqueID ? this.player.getUniqueID() : '',
 			};
 		} catch (e) {
 			return null;
@@ -53,10 +106,10 @@ window.YandexBridge = {
 	},
 
 	openAuth: async function () {
-		if (!this.ysdk) return false;
+		if (!this.ysdk || !this.ysdk.auth) return false;
 		try {
 			await this.ysdk.auth.openAuthDialog();
-			this.player = await this.ysdk.getPlayer();
+			this.player = await this.ysdk.getPlayer({ scopes: false });
 			return this.player.isAuthorized();
 		} catch (e) {
 			return false;
@@ -64,7 +117,7 @@ window.YandexBridge = {
 	},
 
 	getData: async function () {
-		if (!this.player || !this.player.isAuthorized()) return null;
+		if (!this.player) return null;
 		try {
 			return await this.player.getData(['save_blob']);
 		} catch (e) {
@@ -73,7 +126,7 @@ window.YandexBridge = {
 	},
 
 	setData: async function (data) {
-		if (!this.player || !this.player.isAuthorized()) return false;
+		if (!this.player) return false;
 		try {
 			await this.player.setData({ save_blob: data }, false);
 			return true;
@@ -110,10 +163,20 @@ window.YandexBridge = {
 			if (onClose) onClose(false);
 			return;
 		}
+		if (window.godotYandexMute) window.godotYandexMute();
 		this.ysdk.adv.showFullscreenAdv({
 			callbacks: {
-				onClose: (wasShown) => { if (onClose) onClose(wasShown); },
-				onError: () => { if (onClose) onClose(false); },
+				onOpen: () => {
+					if (window.godotYandexMute) window.godotYandexMute();
+				},
+				onClose: (wasShown) => {
+					if (window.godotYandexUnmute) window.godotYandexUnmute();
+					if (onClose) onClose(wasShown);
+				},
+				onError: () => {
+					if (window.godotYandexUnmute) window.godotYandexUnmute();
+					if (onClose) onClose(false);
+				},
 			},
 		});
 	},
@@ -123,12 +186,30 @@ window.YandexBridge = {
 			if (onClose) onClose(false);
 			return;
 		}
+		if (window.godotYandexMute) window.godotYandexMute();
 		this.ysdk.adv.showRewardedVideo({
 			callbacks: {
-				onRewarded: () => { if (onRewarded) onRewarded(); },
-				onClose: (wasShown) => { if (onClose) onClose(wasShown); },
-				onError: () => { if (onClose) onClose(false); },
+				onOpen: () => {
+					if (window.godotYandexMute) window.godotYandexMute();
+				},
+				onRewarded: () => {
+					if (onRewarded) onRewarded();
+				},
+				onClose: (wasShown) => {
+					if (window.godotYandexUnmute) window.godotYandexUnmute();
+					if (onClose) onClose(wasShown);
+				},
+				onError: () => {
+					if (window.godotYandexUnmute) window.godotYandexUnmute();
+					if (onClose) onClose(false);
+				},
 			},
 		});
 	},
+};
+
+window.initSDK = function () {
+	if (window.YandexBridge) {
+		window.YandexBridge.init();
+	}
 };

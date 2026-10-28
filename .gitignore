@@ -3,16 +3,51 @@
 .nomedia
 ~*.dll
 
-# Общие временные файлы Godot
+# Godot import artifacts and temporary files
 .import/
 export.cfg
 export_credentials.cfg
 *.tmp
 *.translation
 
-# Для C# / .NET / Mono проектов
+# C# / .NET / Mono
 .mono/
 data_*/
 mono_crash.*.json
 *.csproj.user
 
+# Build outputs and generated archives
+export_web/
+build/
+dist/
+*.zip
+*.tar.gz
+*.7z
+*.rar
+*.apk
+*.aab
+*.exe
+
+# Credentials, secrets, and private configs
+*.env
+*.env.*
+*.secret
+*.key
+*.keystore
+*.pem
+*.cer
+*.crt
+credentials.json
+service_account.json
+client_secret*.json
+
+# OS and IDE caches
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store

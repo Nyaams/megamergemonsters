@@ -40,6 +40,12 @@ const STRINGS: Dictionary = {
 		"bomb_buy_refill": "Бомба +1 — %d",
 		"bomb_count": "x%d",
 		"watch_ad_continue": "▶ Смотреть рекламу",
+		"revive_title": "Котёл переполнен!",
+		"revive_question": "Посмотреть рекламу, чтобы продолжить?",
+		"revive_benefit": "Монстры < 3 уровня исчезнут!",
+		"revive_extra_life": "❤️ Использовать жизнь",
+		"revive_watch_ad": "▶ Смотреть рекламу",
+		"revive_decline": "Нет, закончить",
 		"leaderboard": "Лидеры",
 		"leaderboard_title": "🏆 ЛИДЕРЫ",
 		"your_score": "Ваш результат",
@@ -92,6 +98,12 @@ const STRINGS: Dictionary = {
 		"bomb_buy_refill": "Bomb +1 — %d",
 		"bomb_count": "x%d",
 		"watch_ad_continue": "▶ Watch ad",
+		"revive_title": "Cauldron Overflow!",
+		"revive_question": "Watch an ad to continue?",
+		"revive_benefit": "Monsters < lvl 3 will be cleared!",
+		"revive_extra_life": "❤️ Use Extra Life",
+		"revive_watch_ad": "▶ Watch ad",
+		"revive_decline": "No, finish game",
 		"leaderboard": "Leaders",
 		"leaderboard_title": "🏆 LEADERS",
 		"your_score": "Your score",
@@ -109,8 +121,28 @@ const STRINGS: Dictionary = {
 	},
 }
 
+const SUPPORTED_LANGUAGES := ["ru", "en"]
+const RU_FALLBACK_LANGS := ["be", "kk", "uk", "uz"]
+
 var language: String = "ru"
 var sound_enabled: bool = true
+
+
+static func resolve_yandex_language(raw_lang: String) -> String:
+	var code := raw_lang.to_lower().strip_edges()
+	if "-" in code:
+		code = code.split("-")[0]
+	if "_" in code:
+		code = code.split("_")[0]
+
+	if code == "ru":
+		return "ru"
+	if code == "en":
+		return "en"
+	if code in RU_FALLBACK_LANGS:
+		return "ru"
+	# Per Yandex Games Requirement 2.14: "en для остальных языков"
+	return "en"
 
 
 func get_text(key: String) -> String:
@@ -119,7 +151,8 @@ func get_text(key: String) -> String:
 
 
 func load_from_save(save: SaveData) -> void:
-	language = save.language
+	if save.language != "":
+		language = save.language
 	sound_enabled = save.sound_enabled
 
 

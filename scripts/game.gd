@@ -36,6 +36,14 @@ const WALL_THICKNESS := 20.0
 
 @onready var pause_panel: Control = $UI/PausePanel
 @onready var upgrades_panel: Control = $UI/UpgradesPanel
+@onready var revive_offer_panel: Control = $UI/ReviveOfferPanel
+@onready var revive_title: Label = $UI/ReviveOfferPanel/ReviveVBox/ReviveTitle
+@onready var revive_question: Label = $UI/ReviveOfferPanel/ReviveVBox/ReviveQuestion
+@onready var revive_benefit: Label = $UI/ReviveOfferPanel/ReviveVBox/ReviveBenefit
+@onready var revive_extra_life_btn: Button = $UI/ReviveOfferPanel/ReviveVBox/ReviveExtraLifeButton
+@onready var revive_watch_ad_btn: Button = $UI/ReviveOfferPanel/ReviveVBox/ReviveWatchAdButton
+@onready var revive_decline_btn: Button = $UI/ReviveOfferPanel/ReviveVBox/ReviveDeclineButton
+
 @onready var game_over_panel: Control = $UI/GameOverPanel
 @onready var leaderboard_panel: Control = $UI/LeaderboardPanel
 
@@ -43,8 +51,6 @@ const WALL_THICKNESS := 20.0
 @onready var game_over_best_label: Label = $UI/GameOverPanel/GameOverVBox/GameOverBestLabel
 @onready var coins_earned_label: Label = $UI/GameOverPanel/GameOverVBox/CoinsEarnedLabel
 @onready var retry_button: Button = $UI/GameOverPanel/GameOverVBox/RetryButton
-@onready var continue_button: Button = $UI/GameOverPanel/GameOverVBox/ContinueButton
-@onready var ad_continue_button: Button = $UI/GameOverPanel/GameOverVBox/AdContinueButton
 @onready var game_over_menu_button: Button = $UI/GameOverPanel/GameOverVBox/GameOverMenuButton
 @onready var upgrades_from_game_over: Button = $UI/GameOverPanel/GameOverVBox/GameOverUpgradesButton
 
@@ -97,6 +103,10 @@ var _new_best_this_round: bool = false
 
 func _ready() -> void:
 	_save.load()
+	if not _save.user_selected_language or _save.language == "":
+		var raw_sdk_lang := YandexManager.get_sdk_language()
+		_save.language = Locale.resolve_yandex_language(raw_sdk_lang)
+		_save.save()
 	YandexManager.load_cloud_save_async(_save)
 	Locale.load_from_save(_save)
 	AudioManager.apply_settings()
@@ -121,11 +131,13 @@ func _ready() -> void:
 func _setup_panels() -> void:
 	UIHelpers.wrap_panel($UI/PausePanel/PauseVBox)
 	UIHelpers.wrap_panel($UI/UpgradesPanel/UpgradesVBox)
+	UIHelpers.wrap_panel($UI/ReviveOfferPanel/ReviveVBox)
 	UIHelpers.wrap_panel($UI/GameOverPanel/GameOverVBox)
 	UIHelpers.apply_readable_tree($UI/HUD/HudPanel)
 	UIHelpers.apply_readable_tree($UI/HUD/ComboLabel)
 	UIHelpers.apply_readable_tree($UI/HUD/AbilityBar)
 	UIHelpers.apply_readable_tree($UI/PausePanel)
+	UIHelpers.apply_readable_tree($UI/ReviveOfferPanel)
 	UIHelpers.apply_readable_tree($UI/GameOverPanel)
 
 	UIHelpers.style_icon_button(hud_sound_btn)
@@ -138,8 +150,6 @@ func _connect_buttons() -> void:
 	hud_sound_btn.pressed.connect(_on_toggle_sound)
 	bomb_button.pressed.connect(_on_bomb_pressed)
 	retry_button.pressed.connect(_on_retry_pressed)
-	continue_button.pressed.connect(_on_continue_pressed)
-	ad_continue_button.pressed.connect(_on_ad_continue_pressed)
 	game_over_menu_button.pressed.connect(_on_game_over_menu_pressed)
 	upgrades_from_game_over.pressed.connect(_on_upgrades_pressed)
 	pause_resume_btn.pressed.connect(_on_resume_pressed)
@@ -153,6 +163,10 @@ func _connect_buttons() -> void:
 	combo_duration_btn.pressed.connect(_on_buy_combo_duration)
 	bomb_unlock_btn.pressed.connect(_on_buy_bomb)
 
+	revive_extra_life_btn.pressed.connect(_on_revive_extra_life_pressed)
+	revive_watch_ad_btn.pressed.connect(_on_revive_watch_ad_pressed)
+	revive_decline_btn.pressed.connect(_on_revive_decline_pressed)
+
 
 func _apply_locale() -> void:
 	pause_button.text = Locale.get_text("pause")
@@ -165,10 +179,16 @@ func _apply_locale() -> void:
 	next_label.text = Locale.get_text("next")
 	game_over_label.text = Locale.get_text("game_over")
 	retry_button.text = Locale.get_text("play_again")
-	continue_button.text = Locale.get_text("continue_life")
-	ad_continue_button.text = Locale.get_text("watch_ad_continue")
 	game_over_menu_button.text = Locale.get_text("main_menu")
 	upgrades_from_game_over.text = Locale.get_text("upgrades")
+
+	revive_title.text = Locale.get_text("revive_title")
+	revive_question.text = Locale.get_text("revive_question")
+	revive_benefit.text = Locale.get_text("revive_benefit")
+	revive_extra_life_btn.text = Locale.get_text("revive_extra_life")
+	revive_watch_ad_btn.text = Locale.get_text("revive_watch_ad")
+	revive_decline_btn.text = Locale.get_text("revive_decline")
+
 	_update_settings_ui()
 	_update_ui()
 
@@ -256,6 +276,7 @@ func _start_round() -> void:
 
 func _hide_all_panels() -> void:
 	pause_panel.hide()
+	revive_offer_panel.hide()
 	upgrades_panel.hide()
 	game_over_panel.hide()
 	leaderboard_panel.hide()
@@ -313,7 +334,7 @@ func _physics_process(delta: float) -> void:
 	if in_danger:
 		_danger_timer += delta
 		if _danger_timer >= DANGER_TIMEOUT:
-			_trigger_game_over()
+			_on_defeat()
 	else:
 		_danger_timer = 0.0
 
@@ -334,14 +355,80 @@ func _check_danger_zone() -> bool:
 	return false
 
 
-func _trigger_game_over() -> void:
-	if state == State.GAME_OVER:
+func _on_defeat() -> void:
+	if state != State.PLAYING:
 		return
-	state = State.GAME_OVER
+
 	preview_current.visible = false
 	aim_line.visible = false
 	AudioManager.set_gameplay_active(false)
 	AudioManager.play_game_over()
+	YandexManager.notify_gameplay_stopped()
+
+	if not _revive_used:
+		state = State.PAUSED
+		revive_extra_life_btn.visible = _save.extra_life_owned
+		revive_offer_panel.show()
+	else:
+		_trigger_game_over()
+
+
+func _on_revive_watch_ad_pressed() -> void:
+	var rewarded := false
+	YandexManager.show_rewarded(
+		func(): rewarded = true,
+		func(_was_shown: bool):
+			if rewarded:
+				_do_revive_and_clear_monsters()
+			else:
+				revive_offer_panel.hide()
+				_trigger_game_over()
+	)
+
+
+func _on_revive_extra_life_pressed() -> void:
+	if not _save.extra_life_owned or _revive_used:
+		return
+	_save.extra_life_owned = false
+	_save.save()
+	_do_revive_and_clear_monsters()
+
+
+func _on_revive_decline_pressed() -> void:
+	revive_offer_panel.hide()
+	_trigger_game_over()
+
+
+func _do_revive_and_clear_monsters() -> void:
+	_revive_used = true
+	revive_offer_panel.hide()
+
+	for node in monsters_root.get_children():
+		if node is Monster:
+			var m := node as Monster
+			if m.level < 3 or m.kind == SpawnEntry.Kind.JUNK:
+				effects.play_particles(m.global_position, Color(1.0, 0.85, 0.3, 0.9), 10)
+				m.queue_free()
+
+	_danger_feedback.reset()
+	_danger_timer = 0.0
+	state = State.PLAYING
+	preview_current.visible = true
+	aim_line.visible = true
+	_save_session()
+	YandexManager.notify_gameplay_started()
+	AudioManager.set_gameplay_active(true)
+	_update_ui()
+
+
+func _trigger_game_over() -> void:
+	if state == State.GAME_OVER:
+		return
+	state = State.GAME_OVER
+	revive_offer_panel.hide()
+	preview_current.visible = false
+	aim_line.visible = false
+	AudioManager.set_gameplay_active(false)
 	YandexManager.notify_gameplay_stopped()
 
 	_new_best_this_round = score > _save.best_score
@@ -357,8 +444,6 @@ func _trigger_game_over() -> void:
 	final_score_label.text = "%s: %d" % [Locale.get_text("score"), score]
 	game_over_best_label.text = "%s: %d" % [Locale.get_text("best"), _save.best_score]
 	coins_earned_label.text = "%s: +%d" % [Locale.get_text("coins"), _last_coins_earned]
-	continue_button.visible = _save.extra_life_owned and not _revive_used
-	ad_continue_button.visible = not _revive_used and YandexManager.sdk_initialized
 	game_over_panel.show()
 	_update_ui()
 
@@ -379,40 +464,6 @@ func _award_round_coins() -> void:
 	_last_coins_earned = result["total"]
 	_save.coins += _last_coins_earned
 	_save.unlock_milestones(new_milestones)
-
-
-func _do_revive() -> void:
-	_revive_used = true
-	state = State.PLAYING
-	_danger_timer = 0.0
-	game_over_panel.hide()
-	preview_current.visible = true
-	aim_line.visible = true
-	_danger_feedback.reset()
-	_save_session()
-	YandexManager.notify_gameplay_started()
-	AudioManager.set_gameplay_active(true)
-	_update_ui()
-
-
-func _on_continue_pressed() -> void:
-	if not _save.extra_life_owned or _revive_used:
-		return
-	_do_revive()
-
-
-func _on_ad_continue_pressed() -> void:
-	if _revive_used:
-		return
-	var rewarded := false
-	YandexManager.show_rewarded(
-		func(): rewarded = true,
-		func(_was_shown: bool):
-			if rewarded:
-				_do_revive()
-			elif state == State.GAME_OVER:
-				YandexManager.notify_gameplay_stopped()
-	)
 
 
 func _on_retry_pressed() -> void:
@@ -458,6 +509,7 @@ func _on_platform_pause() -> void:
 	_platform_paused = true
 	state = State.PAUSED
 	pause_panel.show()
+	AudioServer.set_bus_mute(0, true)
 	AudioManager.set_gameplay_active(false)
 
 
@@ -469,6 +521,7 @@ func _on_platform_resume() -> void:
 		state = State.PLAYING
 		pause_panel.hide()
 		YandexManager.notify_gameplay_started()
+		AudioServer.set_bus_mute(0, not Locale.sound_enabled)
 		AudioManager.set_gameplay_active(true)
 
 
@@ -494,8 +547,10 @@ func _on_toggle_sound() -> void:
 
 func _on_toggle_language() -> void:
 	Locale.language = "en" if Locale.language == "ru" else "ru"
+	_save.user_selected_language = true
 	Locale.apply_to_save(_save)
 	_save.save()
+	YandexManager.queue_cloud_save(_save)
 	_apply_locale()
 	_update_upgrades_ui()
 
@@ -583,7 +638,7 @@ func _update_drop_position_from_input() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if state != State.PLAYING:
 		return
-	if pause_panel.visible or upgrades_panel.visible:
+	if pause_panel.visible or upgrades_panel.visible or revive_offer_panel.visible or game_over_panel.visible:
 		return
 
 	if event is InputEventScreenTouch:

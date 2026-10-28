@@ -13,7 +13,8 @@ var bomb_count: int = 0
 var milestones: Array = []
 var prestige_level: int = 0
 var sound_enabled: bool = true
-var language: String = "ru"
+var language: String = ""
+var user_selected_language: bool = false
 var has_active_session: bool = false
 var session_data: Dictionary = {}
 var total_games: int = 0
@@ -38,7 +39,8 @@ func load() -> void:
 	milestones = config.get_value("game", "milestones", [])
 	prestige_level = config.get_value("game", "prestige_level", 0)
 	sound_enabled = config.get_value("game", "sound_enabled", true)
-	language = config.get_value("game", "language", "ru")
+	language = config.get_value("game", "language", "")
+	user_selected_language = config.get_value("game", "user_selected_language", false)
 	total_games = config.get_value("stats", "total_games", 0)
 	total_score = config.get_value("stats", "total_score", 0)
 	total_merges = config.get_value("stats", "total_merges", 0)
@@ -60,6 +62,7 @@ func save() -> void:
 	config.set_value("game", "prestige_level", prestige_level)
 	config.set_value("game", "sound_enabled", sound_enabled)
 	config.set_value("game", "language", language)
+	config.set_value("game", "user_selected_language", user_selected_language)
 	config.set_value("stats", "total_games", total_games)
 	config.set_value("stats", "total_score", total_score)
 	config.set_value("stats", "total_merges", total_merges)
@@ -101,6 +104,7 @@ func to_cloud_dict() -> Dictionary:
 		"prestige_level": prestige_level,
 		"sound_enabled": sound_enabled,
 		"language": language,
+		"user_selected_language": user_selected_language,
 		"total_games": total_games,
 		"total_score": total_score,
 		"total_merges": total_merges,
@@ -119,6 +123,7 @@ func from_cloud_dict(data: Dictionary) -> void:
 	prestige_level = int(data.get("prestige_level", prestige_level))
 	sound_enabled = bool(data.get("sound_enabled", sound_enabled))
 	language = str(data.get("language", language))
+	user_selected_language = bool(data.get("user_selected_language", user_selected_language))
 	total_games = int(data.get("total_games", total_games))
 	total_score = int(data.get("total_score", total_score))
 	total_merges = int(data.get("total_merges", total_merges))

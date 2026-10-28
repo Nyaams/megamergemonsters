@@ -5,18 +5,23 @@ signal platform_pause
 signal platform_resume
 signal cloud_loaded(data: Dictionary)
 signal leaderboard_loaded(data: Dictionary)
+signal language_detected(lang_code: String)
 
 const LEADERBOARD_NAME := "bestScore"
 const CLOUD_DEBOUNCE := 3.0
+const INTERSTITIAL_COOLDOWN := 65.0
 
 var is_web := false
 var sdk_initialized := false
 var player_authorized := false
+var environment_language: String = "ru"
 
 var _gameplay_active := false
 var _pending_save: SaveData = null
 var _cloud_timer := 0.0
 var _init_done := false
+var _loading_ready_pending := false
+var _last_interstitial_time: float = -100.0
 
 
 func _ready() -> void:
@@ -31,12 +36,33 @@ func _ready() -> void:
 
 
 func _setup_js_callbacks() -> void:
-	var pause_cb := JavaScriptBridge.create_callback(func(_args): platform_pause.emit())
-	var resume_cb := JavaScriptBridge.create_callback(func(_args): platform_resume.emit())
-	JavaScriptBridge.eval("window.godotYandexPause = %s; window.godotYandexResume = %s;" % [pause_cb, resume_cb], true)
+	var pause_cb := JavaScriptBridge.create_callback(func(_args):
+		AudioServer.set_bus_mute(0, true)
+		platform_pause.emit()
+	)
+	var resume_cb := JavaScriptBridge.create_callback(func(_args):
+		AudioServer.set_bus_mute(0, not Locale.sound_enabled)
+		platform_resume.emit()
+	)
+	var mute_cb := JavaScriptBridge.create_callback(func(_args):
+		AudioServer.set_bus_mute(0, true)
+	)
+	var unmute_cb := JavaScriptBridge.create_callback(func(_args):
+		AudioServer.set_bus_mute(0, not Locale.sound_enabled)
+	)
+	JavaScriptBridge.eval("""
+		window.godotYandexPause = %s;
+		window.godotYandexResume = %s;
+		window.godotYandexMute = %s;
+		window.godotYandexUnmute = %s;
+	""" % [pause_cb, resume_cb, mute_cb, unmute_cb], true)
 
 
 func _init_sdk_web() -> void:
+	var early_lang: Variant = JavaScriptBridge.eval("window.YandexBridge ? window.YandexBridge.getLanguage() : ''", true)
+	if early_lang != null and str(early_lang) != "":
+		environment_language = str(early_lang)
+
 	JavaScriptBridge.eval("""
 		(async () => {
 			if (!window.YandexBridge) {
@@ -50,6 +76,16 @@ func _init_sdk_web() -> void:
 	call_deferred("_poll_init")
 
 
+func get_sdk_language() -> String:
+	if is_web:
+		var raw: Variant = JavaScriptBridge.eval("window.YandexBridge ? window.YandexBridge.getLanguage() : ''", true)
+		if raw != null and str(raw) != "":
+			return str(raw)
+	if environment_language != "":
+		return environment_language
+	return "ru"
+
+
 func _poll_init() -> void:
 	if _init_done:
 		return
@@ -59,14 +95,21 @@ func _poll_init() -> void:
 		return
 	var result: Dictionary = JSON.parse_string(str(raw))
 	sdk_initialized = bool(result.get("ok", false))
+	if result.has("lang") and str(result["lang"]) != "":
+		environment_language = str(result["lang"])
+		language_detected.emit(environment_language)
 	_init_done = true
 	if sdk_initialized:
 		_refresh_player_web()
+		if _loading_ready_pending:
+			notify_loading_ready()
 	sdk_ready.emit()
 
 
 func notify_loading_ready() -> void:
-	pass
+	_loading_ready_pending = true
+	if is_web and sdk_initialized:
+		JavaScriptBridge.eval("window.YandexBridge && window.YandexBridge.loadingReady();", true)
 
 
 func notify_gameplay_started() -> void:
@@ -86,7 +129,7 @@ func notify_gameplay_stopped() -> void:
 
 
 func queue_cloud_save(save: SaveData) -> void:
-	if not sdk_initialized or not player_authorized:
+	if not sdk_initialized:
 		return
 	_pending_save = save
 	_cloud_timer = CLOUD_DEBOUNCE
@@ -107,7 +150,7 @@ func load_cloud_save_async(save: SaveData) -> void:
 	JavaScriptBridge.eval("""
 		(async () => {
 			const p = await window.YandexBridge.getPlayer();
-			if (!p || !p.authorized) {
+			if (!p) {
 				window.godotCloudResult = JSON.stringify({});
 				return;
 			}
@@ -131,7 +174,7 @@ func _poll_cloud(save: SaveData) -> void:
 
 
 func _push_cloud_save(save: SaveData) -> void:
-	if not is_web or not sdk_initialized or not player_authorized:
+	if not is_web or not sdk_initialized:
 		return
 	var payload := JSON.stringify(save.to_cloud_dict())
 	JavaScriptBridge.eval("window._godotCloudPayload = %s;" % payload, true)
@@ -213,7 +256,16 @@ func show_interstitial(on_closed: Callable) -> void:
 	if not is_web or not sdk_initialized:
 		on_closed.call(false)
 		return
+
+	var current_time := Time.get_ticks_msec() / 1000.0
+	if current_time - _last_interstitial_time < INTERSTITIAL_COOLDOWN:
+		on_closed.call(false)
+		return
+	_last_interstitial_time = current_time
+
+	AudioServer.set_bus_mute(0, true)
 	var cb := JavaScriptBridge.create_callback(func(args):
+		AudioServer.set_bus_mute(0, not Locale.sound_enabled)
 		var was_shown := false
 		if args.size() > 0:
 			was_shown = bool(args[0])
@@ -230,8 +282,11 @@ func show_rewarded(on_rewarded: Callable, on_closed: Callable) -> void:
 	if not is_web or not sdk_initialized:
 		on_closed.call(false)
 		return
+
+	AudioServer.set_bus_mute(0, true)
 	var reward_cb := JavaScriptBridge.create_callback(func(_args): on_rewarded.call())
 	var close_cb := JavaScriptBridge.create_callback(func(args):
+		AudioServer.set_bus_mute(0, not Locale.sound_enabled)
 		var was_shown := false
 		if args.size() > 0:
 			was_shown = bool(args[0])

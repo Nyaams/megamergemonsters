@@ -35,8 +35,15 @@ var _guide: Control
 
 func _ready() -> void:
 	_save.load()
-	YandexManager.load_cloud_save_async(_save)
+
+	# Auto-detect language per Yandex Games Requirement 2.14 during startup
+	if not _save.user_selected_language or _save.language == "":
+		var raw_sdk_lang := YandexManager.get_sdk_language()
+		_save.language = Locale.resolve_yandex_language(raw_sdk_lang)
+		_save.save()
+
 	Locale.load_from_save(_save)
+	YandexManager.load_cloud_save_async(_save)
 	AudioManager.apply_settings()
 
 	UIHelpers.wrap_panel($UpgradesPanel/UpgradesVBox)
@@ -68,7 +75,11 @@ func _ready() -> void:
 	sound_btn.pressed.connect(_on_toggle_sound)
 	language_btn.pressed.connect(_on_toggle_language)
 
-	YandexManager.sdk_ready.connect(func(): YandexManager.notify_loading_ready())
+	if YandexManager.sdk_initialized:
+		YandexManager.notify_loading_ready()
+	else:
+		YandexManager.sdk_ready.connect(func(): YandexManager.notify_loading_ready(), CONNECT_ONE_SHOT)
+	YandexManager.language_detected.connect(_on_sdk_language_detected)
 	YandexManager.cloud_loaded.connect(_on_cloud_loaded)
 
 	_apply_locale()
@@ -98,11 +109,26 @@ func _update_continue_button() -> void:
 
 
 func _on_cloud_loaded(_data: Dictionary) -> void:
-	Locale.load_from_save(_save)
-	AudioManager.apply_settings()
-	_apply_locale()
+	if _save.user_selected_language and _save.language != "":
+		Locale.load_from_save(_save)
+		AudioManager.apply_settings()
+		_apply_locale()
 	_update_continue_button()
 	_update_quick_controls()
+	_update_upgrades_ui()
+
+
+func _on_sdk_language_detected(raw_lang: String) -> void:
+	if _save.user_selected_language:
+		return
+	var resolved := Locale.resolve_yandex_language(raw_lang)
+	if _save.language != resolved or Locale.language != resolved:
+		_save.language = resolved
+		Locale.language = resolved
+		_save.save()
+		_apply_locale()
+		_update_quick_controls()
+		_update_upgrades_ui()
 
 
 func _on_start_pressed() -> void:
@@ -184,8 +210,10 @@ func _on_toggle_sound() -> void:
 
 func _on_toggle_language() -> void:
 	Locale.language = "en" if Locale.language == "ru" else "ru"
+	_save.user_selected_language = true
 	Locale.apply_to_save(_save)
 	_save.save()
+	YandexManager.queue_cloud_save(_save)
 	_apply_locale()
 	_update_quick_controls()
 	_update_upgrades_ui()

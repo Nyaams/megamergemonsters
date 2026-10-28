@@ -399,6 +399,80 @@ custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 text = "Close"
 
+[node name="ReviveOfferPanel" type="Control" parent="UI" unique_id=71520109]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ReviveOverlay" type="ColorRect" parent="UI/ReviveOfferPanel" unique_id=184910283]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.7)
+
+[node name="ReviveVBox" type="VBoxContainer" parent="UI/ReviveOfferPanel" unique_id=591823714]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -165.0
+offset_top = -140.0
+offset_right = 165.0
+offset_bottom = 140.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="ReviveTitle" type="Label" parent="UI/ReviveOfferPanel/ReviveVBox" unique_id=141829375]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Котёл переполнен!"
+horizontal_alignment = 1
+
+[node name="ReviveQuestion" type="Label" parent="UI/ReviveOfferPanel/ReviveVBox" unique_id=208194827]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Посмотреть рекламу, чтобы продолжить?"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="ReviveBenefit" type="Label" parent="UI/ReviveOfferPanel/ReviveVBox" unique_id=819273645]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.45, 1)
+theme_override_font_sizes/font_size = 13
+text = "Монстры < 3 уровня исчезнут!"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="ReviveExtraLifeButton" type="Button" parent="UI/ReviveOfferPanel/ReviveVBox" unique_id=48291048]
+visible = false
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "❤️ Использовать жизнь"
+
+[node name="ReviveWatchAdButton" type="Button" parent="UI/ReviveOfferPanel/ReviveVBox" unique_id=918274619]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 17
+text = "▶ Смотреть рекламу"
+
+[node name="ReviveDeclineButton" type="Button" parent="UI/ReviveOfferPanel/ReviveVBox" unique_id=319482710]
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Нет, закончить"
+
 [node name="GameOverPanel" type="Control" parent="UI" unique_id=163966735]
 visible = false
 layout_mode = 3
@@ -457,18 +531,6 @@ theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
 theme_override_font_sizes/font_size = 18
 text = "Coins: +0"
 horizontal_alignment = 1
-
-[node name="ContinueButton" type="Button" parent="UI/GameOverPanel/GameOverVBox" unique_id=61265946]
-visible = false
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-text = "Продолжить"
-
-[node name="AdContinueButton" type="Button" parent="UI/GameOverPanel/GameOverVBox" unique_id=1303121534]
-visible = false
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-text = "Watch ad"
 
 [node name="RetryButton" type="Button" parent="UI/GameOverPanel/GameOverVBox" unique_id=2113155602]
 custom_minimum_size = Vector2(0, 44)
