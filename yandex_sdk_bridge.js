@@ -158,21 +158,28 @@ window.YandexBridge = {
 			return;
 		}
 		if (window.godotYandexMute) window.godotYandexMute();
-		this.ysdk.adv.showFullscreenAdv({
-			callbacks: {
-				onOpen: () => {
-					if (window.godotYandexMute) window.godotYandexMute();
+		try {
+			this.ysdk.adv.showFullscreenAdv({
+				callbacks: {
+					onOpen: () => {
+						if (window.godotYandexMute) window.godotYandexMute();
+					},
+					onClose: (wasShown) => {
+						if (window.godotYandexUnmute) window.godotYandexUnmute();
+						if (onClose) onClose(Boolean(wasShown));
+					},
+					onError: (err) => {
+						console.warn('[YandexBridge] showFullscreenAdv onError:', err);
+						if (window.godotYandexUnmute) window.godotYandexUnmute();
+						if (onClose) onClose(false);
+					},
 				},
-				onClose: (wasShown) => {
-					if (window.godotYandexUnmute) window.godotYandexUnmute();
-					if (onClose) onClose(wasShown);
-				},
-				onError: () => {
-					if (window.godotYandexUnmute) window.godotYandexUnmute();
-					if (onClose) onClose(false);
-				},
-			},
-		});
+			});
+		} catch (err) {
+			console.warn('[YandexBridge] showFullscreenAdv exception:', err);
+			if (window.godotYandexUnmute) window.godotYandexUnmute();
+			if (onClose) onClose(false);
+		}
 	},
 
 	showRewardedVideo: function (onRewarded, onClose) {
@@ -181,25 +188,46 @@ window.YandexBridge = {
 			return;
 		}
 		if (window.godotYandexMute) window.godotYandexMute();
-		this.ysdk.adv.showRewardedVideo({
-			callbacks: {
-				onOpen: () => {
-					if (window.godotYandexMute) window.godotYandexMute();
+		try {
+			this.ysdk.adv.showRewardedVideo({
+				callbacks: {
+					onOpen: () => {
+						if (window.godotYandexMute) window.godotYandexMute();
+					},
+					onRewarded: () => {
+						if (onRewarded) onRewarded();
+					},
+					onClose: (wasShown) => {
+						if (window.godotYandexUnmute) window.godotYandexUnmute();
+						if (onClose) onClose(Boolean(wasShown));
+					},
+					onError: (err) => {
+						console.warn('[YandexBridge] showRewardedVideo onError:', err);
+						if (window.godotYandexUnmute) window.godotYandexUnmute();
+						if (onClose) onClose(false);
+					},
 				},
-				onRewarded: () => {
-					if (onRewarded) onRewarded();
-				},
-				onClose: (wasShown) => {
-					if (window.godotYandexUnmute) window.godotYandexUnmute();
-					if (onClose) onClose(wasShown);
-				},
-				onError: () => {
-					if (window.godotYandexUnmute) window.godotYandexUnmute();
-					if (onClose) onClose(false);
-				},
-			},
-		});
+			});
+		} catch (err) {
+			console.warn('[YandexBridge] showRewardedVideo exception:', err);
+			if (window.godotYandexUnmute) window.godotYandexUnmute();
+			if (onClose) onClose(false);
+		}
 	},
+
+	call: function (methodName, ...args) {
+		if (typeof this[methodName] === 'function') {
+			return this[methodName].apply(this, args);
+		}
+		return undefined;
+	},
+};
+
+window.call = function (methodName, ...args) {
+	if (typeof window[methodName] === 'function') {
+		return window[methodName].apply(window, args);
+	}
+	return undefined;
 };
 
 window.initSDK = function () {

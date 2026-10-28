@@ -29,9 +29,12 @@ var _pause_cb: JavaScriptObject = null
 var _resume_cb: JavaScriptObject = null
 var _mute_cb: JavaScriptObject = null
 var _unmute_cb: JavaScriptObject = null
-var _interstitial_cb: JavaScriptObject = null
-var _rewarded_reward_cb: JavaScriptObject = null
-var _rewarded_close_cb: JavaScriptObject = null
+
+var _interstitial_on_closed: Callable
+var _interstitial_pending := false
+var _rewarded_on_reward: Callable
+var _rewarded_on_closed: Callable
+var _rewarded_pending := false
 
 var _init_pending := false
 var _cloud_loading_save: SaveData = null
@@ -194,6 +197,40 @@ func _poll_web_tasks() -> void:
 			leaderboard_loaded.emit(data)
 			_leaderboard_pending = false
 
+	if _interstitial_pending:
+		var raw: Variant = JavaScriptBridge.eval(
+			"window.godotInterstitialState && window.godotInterstitialState.closed ? JSON.stringify(window.godotInterstitialState) : null",
+			true
+		)
+		if raw != null:
+			JavaScriptBridge.eval("window.godotInterstitialState = null;", true)
+			_interstitial_pending = false
+			AudioManager.set_master_mute(not Locale.sound_enabled)
+			var data: Dictionary = JSON.parse_string(str(raw))
+			var was_shown := bool(data.get("was_shown", false))
+			if _interstitial_on_closed.is_valid():
+				_interstitial_on_closed.call(was_shown)
+			_interstitial_on_closed = Callable()
+
+	if _rewarded_pending:
+		var raw: Variant = JavaScriptBridge.eval(
+			"window.godotRewardedState && window.godotRewardedState.closed ? JSON.stringify(window.godotRewardedState) : null",
+			true
+		)
+		if raw != null:
+			JavaScriptBridge.eval("window.godotRewardedState = null;", true)
+			_rewarded_pending = false
+			AudioManager.set_master_mute(not Locale.sound_enabled)
+			var data: Dictionary = JSON.parse_string(str(raw))
+			var was_rewarded := bool(data.get("rewarded", false))
+			var was_shown := bool(data.get("was_shown", false))
+			if was_rewarded and _rewarded_on_reward.is_valid():
+				_rewarded_on_reward.call()
+			if _rewarded_on_closed.is_valid():
+				_rewarded_on_closed.call(was_shown)
+			_rewarded_on_reward = Callable()
+			_rewarded_on_closed = Callable()
+
 
 func load_cloud_save_async(save: SaveData) -> void:
 	if not is_web or not sdk_initialized:
@@ -278,19 +315,22 @@ func show_interstitial(on_closed: Callable) -> void:
 	_last_interstitial_time = current_time
 
 	AudioManager.set_master_mute(true)
-	_interstitial_cb = JavaScriptBridge.create_callback(func(args):
-		AudioManager.set_master_mute(not Locale.sound_enabled)
-		var was_shown := false
-		if args.size() > 0:
-			was_shown = bool(args[0])
-		on_closed.call(was_shown)
-	)
-	if _window_interface != null:
-		var bridge = _window_interface.get("YandexBridge")
-		if bridge != null:
-			bridge.call("showFullscreenAdv", _interstitial_cb)
-			return
-	on_closed.call(false)
+	_interstitial_on_closed = on_closed
+	_interstitial_pending = true
+
+	JavaScriptBridge.eval("""
+		window.godotInterstitialState = { closed: false, was_shown: false };
+		if (!window.YandexBridge) {
+			window.godotInterstitialState.closed = true;
+		} else {
+			window.YandexBridge.showFullscreenAdv(function(wasShown) {
+				if (window.godotInterstitialState) {
+					window.godotInterstitialState.was_shown = Boolean(wasShown);
+					window.godotInterstitialState.closed = true;
+				}
+			});
+		}
+	""", true)
 
 
 func show_rewarded(on_rewarded: Callable, on_closed: Callable) -> void:
@@ -300,17 +340,27 @@ func show_rewarded(on_rewarded: Callable, on_closed: Callable) -> void:
 		return
 
 	AudioManager.set_master_mute(true)
-	_rewarded_reward_cb = JavaScriptBridge.create_callback(func(_args): on_rewarded.call())
-	_rewarded_close_cb = JavaScriptBridge.create_callback(func(args):
-		AudioManager.set_master_mute(not Locale.sound_enabled)
-		var was_shown := false
-		if args.size() > 0:
-			was_shown = bool(args[0])
-		on_closed.call(was_shown)
-	)
-	if _window_interface != null:
-		var bridge = _window_interface.get("YandexBridge")
-		if bridge != null:
-			bridge.call("showRewardedVideo", _rewarded_reward_cb, _rewarded_close_cb)
-			return
-	on_closed.call(false)
+	_rewarded_on_reward = on_rewarded
+	_rewarded_on_closed = on_closed
+	_rewarded_pending = true
+
+	JavaScriptBridge.eval("""
+		window.godotRewardedState = { closed: false, rewarded: false, was_shown: false };
+		if (!window.YandexBridge) {
+			window.godotRewardedState.closed = true;
+		} else {
+			window.YandexBridge.showRewardedVideo(
+				function() {
+					if (window.godotRewardedState) {
+						window.godotRewardedState.rewarded = true;
+					}
+				},
+				function(wasShown) {
+					if (window.godotRewardedState) {
+						window.godotRewardedState.was_shown = Boolean(wasShown);
+						window.godotRewardedState.closed = true;
+					}
+				}
+			);
+		}
+	""", true)
