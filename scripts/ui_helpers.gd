@@ -71,8 +71,10 @@ static func get_lang_icon(lang: String) -> Texture2D:
 
 
 static func wrap_panel(vbox: Control) -> void:
+	if vbox == null:
+		return
 	var parent := vbox.get_parent()
-	if parent is PanelContainer:
+	if parent == null or parent is PanelContainer:
 		return
 
 	var panel := PanelContainer.new()
@@ -81,7 +83,8 @@ static func wrap_panel(vbox: Control) -> void:
 	var idx := vbox.get_index()
 	parent.remove_child(vbox)
 	parent.add_child(panel)
-	parent.move_child(panel, idx)
+	if idx >= 0 and idx < parent.get_child_count():
+		parent.move_child(panel, idx)
 	panel.add_child(vbox)
 
 	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)

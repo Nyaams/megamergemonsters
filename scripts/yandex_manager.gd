@@ -23,6 +23,15 @@ var _init_done := false
 var _loading_ready_pending := false
 var _last_interstitial_time: float = -100.0
 
+var _window_interface: JavaScriptObject = null
+var _pause_cb: JavaScriptObject = null
+var _resume_cb: JavaScriptObject = null
+var _mute_cb: JavaScriptObject = null
+var _unmute_cb: JavaScriptObject = null
+var _interstitial_cb: JavaScriptObject = null
+var _rewarded_reward_cb: JavaScriptObject = null
+var _rewarded_close_cb: JavaScriptObject = null
+
 
 func _ready() -> void:
 	is_web = OS.has_feature("web")
@@ -36,26 +45,29 @@ func _ready() -> void:
 
 
 func _setup_js_callbacks() -> void:
-	var pause_cb := JavaScriptBridge.create_callback(func(_args):
-		AudioServer.set_bus_mute(0, true)
+	_window_interface = JavaScriptBridge.get_interface("window")
+	if _window_interface == null:
+		return
+
+	_pause_cb = JavaScriptBridge.create_callback(func(_args):
+		AudioManager.set_master_mute(true)
 		platform_pause.emit()
 	)
-	var resume_cb := JavaScriptBridge.create_callback(func(_args):
-		AudioServer.set_bus_mute(0, not Locale.sound_enabled)
+	_resume_cb = JavaScriptBridge.create_callback(func(_args):
+		AudioManager.set_master_mute(not Locale.sound_enabled)
 		platform_resume.emit()
 	)
-	var mute_cb := JavaScriptBridge.create_callback(func(_args):
-		AudioServer.set_bus_mute(0, true)
+	_mute_cb = JavaScriptBridge.create_callback(func(_args):
+		AudioManager.set_master_mute(true)
 	)
-	var unmute_cb := JavaScriptBridge.create_callback(func(_args):
-		AudioServer.set_bus_mute(0, not Locale.sound_enabled)
+	_unmute_cb = JavaScriptBridge.create_callback(func(_args):
+		AudioManager.set_master_mute(not Locale.sound_enabled)
 	)
-	JavaScriptBridge.eval("""
-		window.godotYandexPause = %s;
-		window.godotYandexResume = %s;
-		window.godotYandexMute = %s;
-		window.godotYandexUnmute = %s;
-	""" % [pause_cb, resume_cb, mute_cb, unmute_cb], true)
+
+	_window_interface.godotYandexPause = _pause_cb
+	_window_interface.godotYandexResume = _resume_cb
+	_window_interface.godotYandexMute = _mute_cb
+	_window_interface.godotYandexUnmute = _unmute_cb
 
 
 func _init_sdk_web() -> void:
@@ -263,18 +275,18 @@ func show_interstitial(on_closed: Callable) -> void:
 		return
 	_last_interstitial_time = current_time
 
-	AudioServer.set_bus_mute(0, true)
-	var cb := JavaScriptBridge.create_callback(func(args):
-		AudioServer.set_bus_mute(0, not Locale.sound_enabled)
+	AudioManager.set_master_mute(true)
+	_interstitial_cb = JavaScriptBridge.create_callback(func(args):
+		AudioManager.set_master_mute(not Locale.sound_enabled)
 		var was_shown := false
 		if args.size() > 0:
 			was_shown = bool(args[0])
 		on_closed.call(was_shown)
 	)
-	JavaScriptBridge.eval(
-		"window.YandexBridge.showFullscreenAdv(%s);" % cb,
-		true
-	)
+	if _window_interface != null and _window_interface.YandexBridge != null:
+		_window_interface.YandexBridge.showFullscreenAdv(_interstitial_cb)
+	else:
+		on_closed.call(false)
 
 
 func show_rewarded(on_rewarded: Callable, on_closed: Callable) -> void:
@@ -283,16 +295,16 @@ func show_rewarded(on_rewarded: Callable, on_closed: Callable) -> void:
 		on_closed.call(false)
 		return
 
-	AudioServer.set_bus_mute(0, true)
-	var reward_cb := JavaScriptBridge.create_callback(func(_args): on_rewarded.call())
-	var close_cb := JavaScriptBridge.create_callback(func(args):
-		AudioServer.set_bus_mute(0, not Locale.sound_enabled)
+	AudioManager.set_master_mute(true)
+	_rewarded_reward_cb = JavaScriptBridge.create_callback(func(_args): on_rewarded.call())
+	_rewarded_close_cb = JavaScriptBridge.create_callback(func(args):
+		AudioManager.set_master_mute(not Locale.sound_enabled)
 		var was_shown := false
 		if args.size() > 0:
 			was_shown = bool(args[0])
 		on_closed.call(was_shown)
 	)
-	JavaScriptBridge.eval(
-		"window.YandexBridge.showRewardedVideo(%s, %s);" % [reward_cb, close_cb],
-		true
-	)
+	if _window_interface != null and _window_interface.YandexBridge != null:
+		_window_interface.YandexBridge.showRewardedVideo(_rewarded_reward_cb, _rewarded_close_cb)
+	else:
+		on_closed.call(false)

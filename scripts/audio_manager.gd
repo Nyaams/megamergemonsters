@@ -36,9 +36,19 @@ func _make_player() -> AudioStreamPlayer:
 	return p
 
 
+static func set_master_mute(mute: bool) -> void:
+	if AudioServer.get_bus_count() <= 0:
+		return
+	var idx := AudioServer.get_bus_index("Master")
+	if idx < 0:
+		idx = 0
+	if idx >= 0 and idx < AudioServer.get_bus_count():
+		AudioServer.set_bus_mute(idx, mute)
+
+
 func apply_settings() -> void:
 	var muted := not Locale.sound_enabled
-	AudioServer.set_bus_mute(AudioServer.get_bus_index("Master"), muted)
+	set_master_mute(muted)
 	if muted:
 		_bg.stop()
 		_boiling.stop()

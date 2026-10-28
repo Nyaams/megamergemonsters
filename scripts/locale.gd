@@ -131,9 +131,14 @@ var sound_enabled: bool = true
 static func resolve_yandex_language(raw_lang: String) -> String:
 	var code := raw_lang.to_lower().strip_edges()
 	if "-" in code:
-		code = code.split("-")[0]
+		var parts := code.split("-")
+		if parts.size() > 0:
+			code = parts[0]
 	if "_" in code:
-		code = code.split("_")[0]
+		var parts := code.split("_")
+		if parts.size() > 0:
+			code = parts[0]
+	code = code.strip_edges()
 
 	if code == "ru":
 		return "ru"

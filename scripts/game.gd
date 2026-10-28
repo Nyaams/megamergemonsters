@@ -509,7 +509,7 @@ func _on_platform_pause() -> void:
 	_platform_paused = true
 	state = State.PAUSED
 	pause_panel.show()
-	AudioServer.set_bus_mute(0, true)
+	AudioManager.set_master_mute(true)
 	AudioManager.set_gameplay_active(false)
 
 
@@ -521,7 +521,7 @@ func _on_platform_resume() -> void:
 		state = State.PLAYING
 		pause_panel.hide()
 		YandexManager.notify_gameplay_started()
-		AudioServer.set_bus_mute(0, not Locale.sound_enabled)
+		AudioManager.set_master_mute(not Locale.sound_enabled)
 		AudioManager.set_gameplay_active(true)
 
 
