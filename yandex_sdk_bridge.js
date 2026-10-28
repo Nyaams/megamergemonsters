@@ -157,6 +157,13 @@ window.YandexBridge = {
 			if (onClose) onClose(false);
 			return;
 		}
+		var closed = false;
+		var safeClose = (wasShown) => {
+			if (closed) return;
+			closed = true;
+			if (window.godotYandexUnmute) window.godotYandexUnmute();
+			if (onClose) onClose(Boolean(wasShown));
+		};
 		if (window.godotYandexMute) window.godotYandexMute();
 		try {
 			this.ysdk.adv.showFullscreenAdv({
@@ -165,20 +172,17 @@ window.YandexBridge = {
 						if (window.godotYandexMute) window.godotYandexMute();
 					},
 					onClose: (wasShown) => {
-						if (window.godotYandexUnmute) window.godotYandexUnmute();
-						if (onClose) onClose(Boolean(wasShown));
+						safeClose(wasShown);
 					},
 					onError: (err) => {
 						console.warn('[YandexBridge] showFullscreenAdv onError:', err);
-						if (window.godotYandexUnmute) window.godotYandexUnmute();
-						if (onClose) onClose(false);
+						safeClose(false);
 					},
 				},
 			});
 		} catch (err) {
 			console.warn('[YandexBridge] showFullscreenAdv exception:', err);
-			if (window.godotYandexUnmute) window.godotYandexUnmute();
-			if (onClose) onClose(false);
+			safeClose(false);
 		}
 	},
 
@@ -187,6 +191,13 @@ window.YandexBridge = {
 			if (onClose) onClose(false);
 			return;
 		}
+		var closed = false;
+		var safeClose = (wasShown) => {
+			if (closed) return;
+			closed = true;
+			if (window.godotYandexUnmute) window.godotYandexUnmute();
+			if (onClose) onClose(Boolean(wasShown));
+		};
 		if (window.godotYandexMute) window.godotYandexMute();
 		try {
 			this.ysdk.adv.showRewardedVideo({
@@ -198,20 +209,17 @@ window.YandexBridge = {
 						if (onRewarded) onRewarded();
 					},
 					onClose: (wasShown) => {
-						if (window.godotYandexUnmute) window.godotYandexUnmute();
-						if (onClose) onClose(Boolean(wasShown));
+						safeClose(wasShown);
 					},
 					onError: (err) => {
 						console.warn('[YandexBridge] showRewardedVideo onError:', err);
-						if (window.godotYandexUnmute) window.godotYandexUnmute();
-						if (onClose) onClose(false);
+						safeClose(false);
 					},
 				},
 			});
 		} catch (err) {
 			console.warn('[YandexBridge] showRewardedVideo exception:', err);
-			if (window.godotYandexUnmute) window.godotYandexUnmute();
-			if (onClose) onClose(false);
+			safeClose(false);
 		}
 	},
 
