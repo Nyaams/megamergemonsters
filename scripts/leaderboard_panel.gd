@@ -19,7 +19,7 @@ func open(local_best: int) -> void:
 	title_label.text = Locale.get_text("leaderboard_title")
 	close_btn.text = Locale.get_text("close")
 	entries_label.text = Locale.get_text("loading")
-	player_label.text = "%s: %d" % [Locale.get_text("your_score"), local_best]
+	player_label.text = "%s: %s" % [Locale.get_text("your_score"), _format_score(local_best)]
 	show()
 	YandexManager.fetch_leaderboard()
 
@@ -27,7 +27,7 @@ func open(local_best: int) -> void:
 func _on_leaderboard_loaded(data: Dictionary) -> void:
 	if data.get("offline", false) or not data.has("entries"):
 		entries_label.text = Locale.get_text("login_for_lb")
-		player_label.text = "%s: %d" % [Locale.get_text("your_score"), _local_best]
+		player_label.text = "%s: %s" % [Locale.get_text("your_score"), _format_score(_local_best)]
 		return
 
 	var lines: PackedStringArray = []
@@ -37,7 +37,9 @@ func _on_leaderboard_loaded(data: Dictionary) -> void:
 		var player: Dictionary = entry.get("player", {})
 		var name: String = str(player.get("publicName", "???"))
 		var sc: int = int(entry.get("score", 0))
-		var rank: int = int(entry.get("rank", i)) + 1
+		var rank: int = int(entry.get("rank", 0))
+		if rank <= 0:
+			rank = i + 1
 		lines.append("%d. %-12s %s" % [rank, name.substr(0, 12), _format_score(sc)])
 
 	entries_label.text = "\n".join(lines) if lines.size() > 0 else "—"
