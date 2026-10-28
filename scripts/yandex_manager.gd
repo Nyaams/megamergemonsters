@@ -227,7 +227,7 @@ func _poll_web_tasks() -> void:
 			if was_rewarded and _rewarded_on_reward.is_valid():
 				_rewarded_on_reward.call()
 			if _rewarded_on_closed.is_valid():
-				_rewarded_on_closed.call(was_shown)
+				_rewarded_on_closed.call(was_rewarded)
 			_rewarded_on_reward = Callable()
 			_rewarded_on_closed = Callable()
 

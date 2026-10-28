@@ -374,11 +374,11 @@ func _on_defeat() -> void:
 
 
 func _on_revive_watch_ad_pressed() -> void:
-	var rewarded := false
 	YandexManager.show_rewarded(
-		func(): rewarded = true,
-		func(_was_shown: bool):
-			if rewarded:
+		func():
+			_do_revive_and_clear_monsters(),
+		func(was_rewarded: bool):
+			if was_rewarded:
 				_do_revive_and_clear_monsters()
 			else:
 				revive_offer_panel.hide()
@@ -400,6 +400,8 @@ func _on_revive_decline_pressed() -> void:
 
 
 func _do_revive_and_clear_monsters() -> void:
+	if _revive_used:
+		return
 	_revive_used = true
 	revive_offer_panel.hide()
 
@@ -408,6 +410,9 @@ func _do_revive_and_clear_monsters() -> void:
 			var m := node as Monster
 			if m.level < 3 or m.kind == SpawnEntry.Kind.JUNK:
 				effects.play_particles(m.global_position, Color(1.0, 0.85, 0.3, 0.9), 10)
+				m.remove_from_group("monsters")
+				m.collision_layer = 0
+				m.collision_mask = 0
 				m.queue_free()
 
 	_danger_feedback.reset()
