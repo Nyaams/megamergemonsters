@@ -15,10 +15,6 @@ run/main_scene="res://scenes/main_menu.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.png"
 
-[audio]
-
-buses/default_bus_layout="res://default_bus_layout.tres"
-
 [autoload]
 
 Locale="*res://scripts/locale.gd"
@@ -42,6 +38,10 @@ pointing/emulate_touch_from_mouse=true
 
 2d_physics/layer_1="monsters"
 2d_physics/layer_2="walls"
+
+[memory]
+
+limits/message_queue/max_size_mb=64
 
 [physics]
 

@@ -32,6 +32,12 @@ var _interstitial_cb: JavaScriptObject = null
 var _rewarded_reward_cb: JavaScriptObject = null
 var _rewarded_close_cb: JavaScriptObject = null
 
+var _init_pending := false
+var _cloud_loading_save: SaveData = null
+var _auth_pending := false
+var _player_pending := false
+var _leaderboard_pending := false
+
 
 func _ready() -> void:
 	is_web = OS.has_feature("web")
@@ -64,10 +70,7 @@ func _setup_js_callbacks() -> void:
 		AudioManager.set_master_mute(not Locale.sound_enabled)
 	)
 
-	_window_interface.godotYandexPause = _pause_cb
-	_window_interface.godotYandexResume = _resume_cb
-	_window_interface.godotYandexMute = _mute_cb
-	_window_interface.godotYandexUnmute = _unmute_cb
+	_window_interface.call("setGodotCallbacks", _pause_cb, _resume_cb, _mute_cb, _unmute_cb)
 
 
 func _init_sdk_web() -> void:
@@ -75,6 +78,7 @@ func _init_sdk_web() -> void:
 	if early_lang != null and str(early_lang) != "":
 		environment_language = str(early_lang)
 
+	_init_pending = true
 	JavaScriptBridge.eval("""
 		(async () => {
 			if (!window.YandexBridge) {
@@ -85,7 +89,6 @@ func _init_sdk_web() -> void:
 			window.godotYandexInitResult = JSON.stringify(r);
 		})();
 	""", true)
-	call_deferred("_poll_init")
 
 
 func get_sdk_language() -> String:
@@ -96,26 +99,6 @@ func get_sdk_language() -> String:
 	if environment_language != "":
 		return environment_language
 	return "ru"
-
-
-func _poll_init() -> void:
-	if _init_done:
-		return
-	var raw: Variant = JavaScriptBridge.eval("window.godotYandexInitResult || null", true)
-	if raw == null:
-		call_deferred("_poll_init")
-		return
-	var result: Dictionary = JSON.parse_string(str(raw))
-	sdk_initialized = bool(result.get("ok", false))
-	if result.has("lang") and str(result["lang"]) != "":
-		environment_language = str(result["lang"])
-		language_detected.emit(environment_language)
-	_init_done = true
-	if sdk_initialized:
-		_refresh_player_web()
-		if _loading_ready_pending:
-			notify_loading_ready()
-	sdk_ready.emit()
 
 
 func notify_loading_ready() -> void:
@@ -154,11 +137,67 @@ func _process(delta: float) -> void:
 			_push_cloud_save(_pending_save)
 			_pending_save = null
 
+	if is_web:
+		_poll_web_tasks()
+
+
+func _poll_web_tasks() -> void:
+	if _init_pending:
+		var raw: Variant = JavaScriptBridge.eval("window.godotYandexInitResult || null", true)
+		if raw != null:
+			_init_pending = false
+			_init_done = true
+			var result: Dictionary = JSON.parse_string(str(raw))
+			sdk_initialized = bool(result.get("ok", false))
+			if result.has("lang") and str(result["lang"]) != "":
+				environment_language = str(result["lang"])
+				language_detected.emit(environment_language)
+			if sdk_initialized:
+				_refresh_player_web()
+				if _loading_ready_pending:
+					notify_loading_ready()
+			sdk_ready.emit()
+
+	if _cloud_loading_save != null:
+		var raw: Variant = JavaScriptBridge.eval("window.godotCloudResult || null", true)
+		if raw != null:
+			JavaScriptBridge.eval("window.godotCloudResult = null;", true)
+			var data: Dictionary = JSON.parse_string(str(raw))
+			if not data.is_empty():
+				_cloud_loading_save.merge_from_cloud(data)
+				_cloud_loading_save.save()
+			cloud_loaded.emit(data)
+			_cloud_loading_save = null
+
+	if _auth_pending:
+		var done: Variant = JavaScriptBridge.eval("window.godotAuthDone || null", true)
+		if done != null:
+			JavaScriptBridge.eval("window.godotAuthDone = null;", true)
+			_auth_pending = false
+			_refresh_player_web()
+
+	if _player_pending:
+		var raw: Variant = JavaScriptBridge.eval("window.godotPlayerInfo || null", true)
+		if raw != null:
+			JavaScriptBridge.eval("window.godotPlayerInfo = null;", true)
+			var info: Dictionary = JSON.parse_string(str(raw))
+			player_authorized = bool(info.get("authorized", false))
+			_player_pending = false
+
+	if _leaderboard_pending:
+		var raw: Variant = JavaScriptBridge.eval("window.godotLeaderboardResult || null", true)
+		if raw != null:
+			JavaScriptBridge.eval("window.godotLeaderboardResult = null;", true)
+			var data: Dictionary = JSON.parse_string(str(raw))
+			leaderboard_loaded.emit(data)
+			_leaderboard_pending = false
+
 
 func load_cloud_save_async(save: SaveData) -> void:
 	if not is_web or not sdk_initialized:
 		cloud_loaded.emit({})
 		return
+	_cloud_loading_save = save
 	JavaScriptBridge.eval("""
 		(async () => {
 			const p = await window.YandexBridge.getPlayer();
@@ -170,19 +209,6 @@ func load_cloud_save_async(save: SaveData) -> void:
 			window.godotCloudResult = JSON.stringify(d && d.save_blob ? d.save_blob : {});
 		})();
 	""", true)
-	call_deferred("_poll_cloud", save)
-
-
-func _poll_cloud(save: SaveData) -> void:
-	var raw: Variant = JavaScriptBridge.eval("window.godotCloudResult", true)
-	if raw == null:
-		call_deferred("_poll_cloud", save)
-		return
-	var data: Dictionary = JSON.parse_string(str(raw))
-	if not data.is_empty():
-		save.merge_from_cloud(data)
-		save.save()
-	cloud_loaded.emit(data)
 
 
 func _push_cloud_save(save: SaveData) -> void:
@@ -196,40 +222,23 @@ func _push_cloud_save(save: SaveData) -> void:
 func offer_auth() -> void:
 	if not is_web or not sdk_initialized:
 		return
+	_auth_pending = true
 	JavaScriptBridge.eval("""
 		(async () => {
 			await window.YandexBridge.openAuth();
 			window.godotAuthDone = '1';
 		})();
 	""", true)
-	call_deferred("_poll_auth")
-
-
-func _poll_auth() -> void:
-	var done: Variant = JavaScriptBridge.eval("window.godotAuthDone || null", true)
-	if done == null:
-		call_deferred("_poll_auth")
-		return
-	_refresh_player_web()
 
 
 func _refresh_player_web() -> void:
+	_player_pending = true
 	JavaScriptBridge.eval("""
 		(async () => {
 			const p = await window.YandexBridge.getPlayer();
 			window.godotPlayerInfo = JSON.stringify(p || { authorized: false });
 		})();
 	""", true)
-	call_deferred("_poll_player")
-
-
-func _poll_player() -> void:
-	var raw: Variant = JavaScriptBridge.eval("window.godotPlayerInfo", true)
-	if raw == null:
-		call_deferred("_poll_player")
-		return
-	var info: Dictionary = JSON.parse_string(str(raw))
-	player_authorized = bool(info.get("authorized", false))
 
 
 func upload_score(score: int) -> void:
@@ -245,22 +254,13 @@ func fetch_leaderboard() -> void:
 	if not is_web or not sdk_initialized:
 		leaderboard_loaded.emit({ "offline": true })
 		return
+	_leaderboard_pending = true
 	JavaScriptBridge.eval("""
 		(async () => {
 			const r = await window.YandexBridge.getEntries('%s');
 			window.godotLeaderboardResult = JSON.stringify(r || { offline: true });
 		})();
 	""" % LEADERBOARD_NAME, true)
-	call_deferred("_poll_leaderboard")
-
-
-func _poll_leaderboard() -> void:
-	var raw: Variant = JavaScriptBridge.eval("window.godotLeaderboardResult", true)
-	if raw == null:
-		call_deferred("_poll_leaderboard")
-		return
-	var data: Dictionary = JSON.parse_string(str(raw))
-	leaderboard_loaded.emit(data)
 
 
 func show_interstitial(on_closed: Callable) -> void:
@@ -283,10 +283,12 @@ func show_interstitial(on_closed: Callable) -> void:
 			was_shown = bool(args[0])
 		on_closed.call(was_shown)
 	)
-	if _window_interface != null and _window_interface.YandexBridge != null:
-		_window_interface.YandexBridge.showFullscreenAdv(_interstitial_cb)
-	else:
-		on_closed.call(false)
+	if _window_interface != null:
+		var bridge = _window_interface.get("YandexBridge")
+		if bridge != null:
+			bridge.call("showFullscreenAdv", _interstitial_cb)
+			return
+	on_closed.call(false)
 
 
 func show_rewarded(on_rewarded: Callable, on_closed: Callable) -> void:
@@ -304,7 +306,9 @@ func show_rewarded(on_rewarded: Callable, on_closed: Callable) -> void:
 			was_shown = bool(args[0])
 		on_closed.call(was_shown)
 	)
-	if _window_interface != null and _window_interface.YandexBridge != null:
-		_window_interface.YandexBridge.showRewardedVideo(_rewarded_reward_cb, _rewarded_close_cb)
-	else:
-		on_closed.call(false)
+	if _window_interface != null:
+		var bridge = _window_interface.get("YandexBridge")
+		if bridge != null:
+			bridge.call("showRewardedVideo", _rewarded_reward_cb, _rewarded_close_cb)
+			return
+	on_closed.call(false)

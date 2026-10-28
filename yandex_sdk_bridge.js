@@ -39,19 +39,13 @@ window.YandexBridge = {
 				if (window.godotYandexResume) window.godotYandexResume();
 			});
 
-			// Handle browser tab switching and window blur/focus
+			// Handle browser tab switching
 			document.addEventListener('visibilitychange', () => {
 				if (document.hidden) {
 					if (window.godotYandexPause) window.godotYandexPause();
 				} else {
 					if (window.godotYandexResume) window.godotYandexResume();
 				}
-			});
-			window.addEventListener('blur', () => {
-				if (window.godotYandexPause) window.godotYandexPause();
-			});
-			window.addEventListener('focus', () => {
-				if (window.godotYandexResume) window.godotYandexResume();
 			});
 
 			return { ok: true, lang: this.getLanguage() };
@@ -212,4 +206,11 @@ window.initSDK = function () {
 	if (window.YandexBridge) {
 		window.YandexBridge.init();
 	}
+};
+
+window.setGodotCallbacks = function (pauseCb, resumeCb, muteCb, unmuteCb) {
+	window.godotYandexPause = pauseCb;
+	window.godotYandexResume = resumeCb;
+	window.godotYandexMute = muteCb;
+	window.godotYandexUnmute = unmuteCb;
 };
