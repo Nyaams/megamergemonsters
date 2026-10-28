@@ -1,7 +1,7 @@
 class_name ComboTracker
 extends RefCounted
 
-var window: float = 2.0
+var window: float = 2.5
 
 var _combo_count: int = 0
 var _time_since_last: float = 999.0

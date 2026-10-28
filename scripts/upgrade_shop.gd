@@ -2,19 +2,25 @@ class_name UpgradeShop
 extends RefCounted
 
 const MAX_LEVEL := 5
-const EXTRA_LIFE_COST := 1000
-const COIN_BONUS_BASE_COST := 100
-const COMBO_DURATION_BASE_COST := 250
-const BOMB_UNLOCK_COST := 500
-const BOMB_REFILL_COST := 100
+const EXTRA_LIFE_COST := 350
+const BOMB_UNLOCK_COST := 120
+const BOMB_REFILL_COST := 50
+
+# Progression calibrated for 55 min/day, 35+ yo audience (Day 1 purchase within 10-15m)
+const COIN_BONUS_COSTS: Array[int] = [40, 90, 160, 260, 400]
+const COMBO_DURATION_COSTS: Array[int] = [50, 110, 190, 300, 450]
 
 
 static func coin_bonus_cost(current_level: int) -> int:
-	return COIN_BONUS_BASE_COST * (current_level + 1)
+	if current_level < 0 or current_level >= COIN_BONUS_COSTS.size():
+		return COIN_BONUS_COSTS.back()
+	return COIN_BONUS_COSTS[current_level]
 
 
 static func combo_duration_cost(current_level: int) -> int:
-	return COMBO_DURATION_BASE_COST * (current_level + 1)
+	if current_level < 0 or current_level >= COMBO_DURATION_COSTS.size():
+		return COMBO_DURATION_COSTS.back()
+	return COMBO_DURATION_COSTS[current_level]
 
 
 static func bomb_purchase_cost(save: SaveData) -> int:
@@ -76,7 +82,9 @@ static func buy_bomb(save: SaveData) -> bool:
 
 
 static func get_combo_window(level: int) -> float:
-	return 2.0 + clampi(level, 0, MAX_LEVEL) * 0.1
+	# Base 2.5s window + 0.4s per level (up to 4.5s at Lv 5)
+	# Tailored for casual players & mobile touch controls
+	return 2.5 + clampi(level, 0, MAX_LEVEL) * 0.4
 
 
 static func can_use_bomb(save: SaveData) -> bool:

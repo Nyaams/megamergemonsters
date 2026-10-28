@@ -81,15 +81,18 @@ func _ready() -> void:
 		YandexManager.sdk_ready.connect(func(): YandexManager.notify_loading_ready(), CONNECT_ONE_SHOT)
 	YandexManager.language_detected.connect(_on_sdk_language_detected)
 	YandexManager.cloud_loaded.connect(_on_cloud_loaded)
+	YandexManager.player_info_updated.connect(_on_player_info_updated)
 
 	_apply_locale()
 	_update_continue_button()
 	_update_quick_controls()
+	_update_auth_ui()
 
 
 func _apply_locale() -> void:
 	logo.texture = UIHelpers.get_logo_texture()
 	auth_btn.text = Locale.get_text("auth_login")
+	_update_auth_ui()
 	start_btn.text = Locale.get_text("start_game")
 	continue_btn.text = Locale.get_text("continue_game")
 	upgrades_btn.text = Locale.get_text("upgrades")
@@ -104,6 +107,16 @@ func _apply_locale() -> void:
 	_update_quick_controls()
 
 
+func _update_auth_ui() -> void:
+	auth_btn.visible = not YandexManager.player_authorized
+
+
+func _on_player_info_updated(authorized: bool) -> void:
+	_update_auth_ui()
+	if authorized:
+		YandexManager.load_cloud_save_async(_save)
+
+
 func _update_continue_button() -> void:
 	continue_btn.disabled = not _save.has_active_session
 
@@ -116,6 +129,7 @@ func _on_cloud_loaded(_data: Dictionary) -> void:
 	_update_continue_button()
 	_update_quick_controls()
 	_update_upgrades_ui()
+	_update_auth_ui()
 
 
 func _on_sdk_language_detected(raw_lang: String) -> void:

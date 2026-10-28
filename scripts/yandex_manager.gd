@@ -6,6 +6,7 @@ signal platform_resume
 signal cloud_loaded(data: Dictionary)
 signal leaderboard_loaded(data: Dictionary)
 signal language_detected(lang_code: String)
+signal player_info_updated(authorized: bool)
 
 const LEADERBOARD_NAME := "bestScore"
 const CLOUD_DEBOUNCE := 3.0
@@ -183,6 +184,7 @@ func _poll_web_tasks() -> void:
 			var info: Dictionary = JSON.parse_string(str(raw))
 			player_authorized = bool(info.get("authorized", false))
 			_player_pending = false
+			player_info_updated.emit(player_authorized)
 
 	if _leaderboard_pending:
 		var raw: Variant = JavaScriptBridge.eval("window.godotLeaderboardResult || null", true)

@@ -2,12 +2,14 @@ class_name CoinRewards
 extends RefCounted
 
 const REWARDS: Array[int] = [
-	0, 1, 2, 4, 7, 12, 20, 32, 50, 75, 110, 160, 230, 330, 500,
+	2, 4, 7, 12, 20, 32, 48, 70, 100, 140, 190, 250, 330, 430, 600,
 ]
 
 const MILESTONE_BONUSES: Dictionary = {
-	5: 10,
-	10: 50,
+	5: 15,
+	8: 40,
+	10: 80,
+	12: 150,
 	15: 500,
 }
 
@@ -18,7 +20,7 @@ static func get_base_reward(max_level_1based: int) -> int:
 
 
 static func apply_coin_bonus(base: int, coin_bonus_level: int) -> int:
-	var bonus_pct := coin_bonus_level * 0.05
+	var bonus_pct := coin_bonus_level * 0.10
 	return int(round(float(base) * (1.0 + bonus_pct)))
 
 
