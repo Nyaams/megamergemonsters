@@ -1,31 +1,28 @@
-# Mega Merge Monsters (Мега Мердж Монстры)
+# Mega Merge Monsters (Мега Слияние: Монстры)
 
-Казуальная 2D физическая головоломка в жанре слияния (Merge / Suika style), разработанная на Godot 4 для платформы **Яндекс Игры**.
+Казуальная 2D головоломка в жанре слияния (Merge / Suika style), разработанная на Godot 4 для платформы **Яндекс Игры**.
 
 ---
 
-## Материалы для консоли Яндекс Игр (Русский язык)
+## Материалы для консоли Яндекс Игр
 
-### Короткое описание (до 70 символов)
-> **Символов: 63 / 70**
+### Короткое описание
 ```text
 Сбрасывайте и объединяйте забавных монстров, создавая гигантов!
 ```
 
 ---
 
-### Описание для SEO (до 160 символов)
-> **Символов: 144 / 160**
+### Описание для SEO
 ```text
-Увлекательная физическая головоломка со слиянием монстров в котле! Делайте комбо, открывайте гигантских существ и побеждайте в таблице лидеров.
+Увлекательная головоломка со слиянием монстров в котле! Делайте комбо, открывайте гигантских существ и побеждайте в таблице лидеров.
 ```
 
 ---
 
-### Об игре (до 1000 символов)
-> **Символов: 874 / 1000**
+### Об игре
 ```text
-«Мега Мердж Монстры» — это залипательная казуальная головоломка с сочной физикой в стиле популярного жанра слияния!
+«Мега Слияние: Монстры» — это залипательная казуальная головоломка с сочной физикой в стиле популярного жанра слияния!
 
 Ваша задача — сбрасывать забавных монстриков в магический котёл. Когда два одинаковых существа соприкасаются, они объединяются в нового, более крупного и ценного монстра. Пройдите эволюционную цепочку из 15 уникальных существ и создайте легендарного титана!
 
@@ -42,8 +39,7 @@
 
 ---
 
-### Как играть (до 1000 символов)
-> **Символов: 914 / 1000**
+### Как играть
 ```text
 Цель игры — объединять одинаковых монстров и набрать рекордный счёт, не позволяя котлу переполниться выше красной линии.
 
@@ -66,26 +62,23 @@
 
 ---
 
-## Yandex Games Console Materials (English)
+## Yandex Games Console Materials
 
-### Short Description (up to 70 characters)
-> **Characters: 68 / 70**
+### Short Description
 ```text
 Drop and merge cute monsters in the cauldron to create giant titans!
 ```
 
 ---
 
-### SEO Description (up to 160 characters)
-> **Characters: 149 / 160**
+### SEO Description
 ```text
 Addictive physics merge puzzle! Drop monsters into the magic cauldron, create epic combos, evolve 15 unique creatures, and dominate the leaderboard.
 ```
 
 ---
 
-### About the Game (up to 1000 characters)
-> **Characters: 893 / 1000**
+### About the Game
 ```text
 Mega Merge Monsters is an addictive casual physics puzzle in the popular merge style!
 
@@ -104,8 +97,7 @@ A relaxing yet engaging anti-stress game designed for both mobile touchscreens a
 
 ---
 
-### How to Play (up to 1000 characters)
-> **Characters: 919 / 1000**
+### How to Play
 ```text
 Goal: Merge identical monsters to grow larger ones and score points without overflowing past the red danger line.
 
@@ -125,20 +117,3 @@ Helpful Tips:
 • Spend earned coins in the Upgrades menu to increase combo duration, boost coin rewards, and restock bombs.
 • If the cauldron overflows, use an Extra Life or watch a rewarded video to clear small monsters and continue your record run!
 ```
-
----
-
-## Техническая справка по сборке (Web Export)
-
-1. **Экспорт из Godot:**
-   - Открыть Godot: **Проект → Экспорт → Web**.
-   - Нажать **«Экспортировать проект...»** (не ZIP!).
-   - Сохранить в папку `export_web` с именем файла `index.html`.
-
-2. **Создание архива для консоли Яндекс Игр:**
-   - В терминале выполнить скрипт:
-     ```powershell
-     powershell -ExecutionPolicy Bypass -File .\package_yandex.ps1
-     ```
-   - Скрипт скопирует `yandex_sdk_bridge.js` в корень сборки и создаст архив `yandex_build.zip`.
-   - Загрузить `yandex_build.zip` в Консоль разработчика Яндекс Игр на вкладку «Черновик».
